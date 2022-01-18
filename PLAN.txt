@@ -1,0 +1,5 @@
+Plan: Get everything in git, and on github
+
+Do
+
+Learn:
