@@ -3,13 +3,12 @@
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
 
-; Used to keep track that everything came from this module
-
 (local MODULE {})
 (fn is-mine? [e] (= MODULE (. e MODULE)))
 (fn annex [tbl] (tset tbl MODULE MODULE) tbl)
 (fn pp [obj] (print (view obj)))
 (var layers {})
+
 
 (fn add-layer [layer]
   (or (f.all? layer is-mine?) (error "Element constructed outside of module found!"))
@@ -23,28 +22,7 @@
 (fn get-layers [] 
   layers)
 
-(fn button [pos font text on-click] 
-  (local txt (gfx.newText font text))
-
-  (annex {
-          :type :button
-          :drawn-txt txt
-          : pos
-          : on-click }))
-
-(fn text [pos font text]
-  (annex {:type :text
-          : font
-          : pos
-          : text }))
-
-(fn image [rect image]
-  (annex {:type :image
-          : rect
-          : image }))
-
-(fn init []
-  )
+(fn init [])
 
 (fn update [dt] 
   (local (mx my) (love.mouse.getPosition))
@@ -71,11 +49,11 @@
           (when (and
                   (c.pt-in-rect? [mx my] [x y w h])
                   love.mouse.isJustPressed)
-            (click)
-            ))
+            (click)))
+        {:type :fps} (do)
 
 
-        _ (error (.. "Unmatched element " (view el)))
+        _ (error (.. "Unmatched element in update " (view el)))
 
       ))
   ))
@@ -85,6 +63,9 @@
   (each [_ layer (ipairs layers)]
     (each [_ el (ipairs layer)]
       (match el
+        { :pos [fx fy] :type "fps" MODULE MODULE } 
+        (do
+          (gfx.print (love.timer.getFPS) fx fy))
         {:type :text
          :pos [x y]
          :font fnt
@@ -113,7 +94,7 @@
           (gfx.draw txt-drawn px py))
 
 
-        _ (error (.. "Unmatched element " (view el)))
+        _ (error (.. "Unmatched element in draw" (view el)))
         )
   )))
 
@@ -122,10 +103,8 @@
  : add-layer
  : get-layers
  : swap-layers
- : text
- : image
- : button
  : update
  : draw
  : init
+ : annex
  }

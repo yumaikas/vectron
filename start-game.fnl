@@ -1,7 +1,8 @@
 (local fennel (require :fennel))
 (local timer (require :game.timer))
 (local f (require :f))
-(local ui (require :menu.ui))
+(local menu (require :ui.menu))
+(local ui (require :ui))
 (local assets (require :assets))
 (local gfx love.graphics)
 (fn pp [x] (print (fennel.view x)))
@@ -25,15 +26,15 @@
   (fn y+= [by] (set y-val (+ y-val by)) y-val)
   (ui.add-layer 
     [
-     (ui.text [40 (y+= 40)] assets.font "FOO!")
-     (ui.text [40 (y+= 30)] assets.font "BAR!")
-     (ui.button [40 (y+= 30)] assets.font "QUIT!!" #(love.event.quit 0))
+     (menu.text [40 (y+= 40)] assets.font "FOO!")
+     (menu.text [40 (y+= 30)] assets.font "BAR!")
+     (menu.button [40 (y+= 30)] assets.font "QUIT!!" #(love.event.quit 0))
      ])
+   (ui.add-layer [ (menu.fps [10 10]) ])
   (do))
 
 (fn love.draw []
   (gfx.setFont assets.font)
-  (love.graphics.print (love.timer.getFPS) 10 10)
   (ui.draw))
 
 (fn love.update [dt]

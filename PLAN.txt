@@ -1,5 +1,18 @@
+Session Plan: Get this project some bones, so I can do effective amounts of work in my morning hours with it.
+
+------
 Plan: Get everything in git, and on github
 
-Do
+Do: Done
 
-Learn:
+Learn: I don't have a gitignore for anything yet, this might get tedious.
+
+------
+
+Did: Rearrange the menu
+
+Learn: Arranging things around is fun?
+
+--------------
+
+Getting match errors I can't explain. (Because I need to implement both updating and drawing.)
