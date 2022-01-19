@@ -16,3 +16,29 @@ Learn: Arranging things around is fun?
 --------------
 
 Getting match errors I can't explain. (Because I need to implement both updating and drawing.)
+
+
+-----------------
+
+Plan: Add very basic canvas
+
+Do: Don't even finish, but leave it half-done
+
+Learn: idk
+
+
+----------------------
+
+
+Sesssion plan for 2022-01-19
+
+Try to render rectangle on canvas
+
+Plan:
+
+Do: 
+
+Learn:
+
+
+

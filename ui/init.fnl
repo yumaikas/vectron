@@ -29,6 +29,8 @@
   (each [_ layer (ipairs layers)]
     (each [_ el (ipairs layer)]
       (match el
+        { :code {:update el-update } MODULE MODULE}
+        (el-update el dt)
         {:type :text
          :pos [x y]
          :font fnt
@@ -37,19 +39,6 @@
         (do 
           (gfx.setFont fnt)
           (gfx.print txt x y))
-        {:type :button
-         :pos [px py]
-         :drawn-txt txt-drawn
-         :on-click click
-         MODULE MODULE } 
-        (do
-          (local (w h) (txt-drawn:getDimensions))
-          (local x px)
-          (local y py)
-          (when (and
-                  (c.pt-in-rect? [mx my] [x y w h])
-                  love.mouse.isJustPressed)
-            (click)))
         {:type :fps} (do)
 
 
@@ -63,6 +52,8 @@
   (each [_ layer (ipairs layers)]
     (each [_ el (ipairs layer)]
       (match el
+        { :code {:draw el-draw } MODULE MODULE}
+        (el-draw el)
         { :pos [fx fy] :type "fps" MODULE MODULE } 
         (do
           (gfx.print (love.timer.getFPS) fx fy))
@@ -75,25 +66,6 @@
           (gfx.setColor [ 1 1 1 ])
           (gfx.setFont fnt)
           (gfx.print txt x y))
-        {:type :button
-         :pos [px py]
-         :drawn-txt txt-drawn
-         MODULE MODULE } 
-        (do
-          (local (w h) (txt-drawn:getDimensions))
-          (local x px)
-          (local y py)
-          (when (c.pt-in-rect? [mx my] [x y w h])
-            (gfx.setColor [ 1 0 1 ])
-            (gfx.polygon :fill
-                         [(- x 3) y
-                          (+ x w) y
-                          (+ x w) (+ y h)
-                          (- x 3) (+ y h)]))
-          (gfx.setColor [ 1 1 1 ])
-          (gfx.draw txt-drawn px py))
-
-
         _ (error (.. "Unmatched element in draw" (view el)))
         )
   )))

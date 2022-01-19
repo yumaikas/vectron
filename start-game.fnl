@@ -2,6 +2,7 @@
 (local timer (require :game.timer))
 (local f (require :f))
 (local menu (require :ui.menu))
+(local canvas (require :ui.canvas))
 (local ui (require :ui))
 (local assets (require :assets))
 (local gfx love.graphics)
@@ -26,9 +27,10 @@
   (fn y+= [by] (set y-val (+ y-val by)) y-val)
   (ui.add-layer 
     [
-     (menu.text [40 (y+= 40)] assets.font "FOO!")
-     (menu.text [40 (y+= 30)] assets.font "BAR!")
-     (menu.button [40 (y+= 30)] assets.font "QUIT!!" #(love.event.quit 0))
+     (menu.button [40 (y+= 30)] assets.font "Do stuff" #(pp "Do stuff" ))
+     (menu.button [40 (y+= 30)] assets.font "QUIT!" #(love.event.quit 0))
+     (canvas.make [60 60 100 200] 
+                  (menu.text assets.font ""))
      ])
    (ui.add-layer [ (menu.fps [10 10]) ])
   (do))

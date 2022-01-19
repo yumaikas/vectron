@@ -28,6 +28,7 @@
     (set idx (+ idx 1)))
   (not continue))
 
+
 (fn tests! [] 
   (print "")
   (assert! (function? #(+ 1 2)) "#() is not detected as a function!")
@@ -39,6 +40,7 @@
   (assert! (not (any? [true "foo"] number?)) "all? isn't working?")
   (assert! (any? [true "foo"] boolean?) "all? isn't working?")
   )
+
 
 
 {
