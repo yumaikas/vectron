@@ -17,6 +17,19 @@
     (set idx (+ idx 1)))
   valid)
 
+(fn find [tbl pred] 
+  (or (table? tbl) (error "all expects a table in slot 1"))
+  (or (function? pred) (error "all expects a in slot 2"))
+  (local tlen (length tbl))
+  (var idx 1)
+  (var continue true)
+  (while (and continue (< idx tlen))
+    (set continue (not (pred (. tbl idx))))
+    (set idx (+ idx 1)))
+  (if (<= idx tlen)
+    (. tbl idx)
+    nil))
+
 (fn any? [tbl pred]
   (or (table? tbl) (error "all expects a table in slot 1"))
   (or (function? pred) (error "all expects a in slot 2"))
@@ -38,12 +51,15 @@
   (assert! (all? [1 2 3] number?) "all? isn't working?")
   (assert! (any? [1 2 3] number?) "any? isn't working?")
   (assert! (not (any? [true "foo"] number?)) "all? isn't working?")
-  (assert! (any? [true "foo"] boolean?) "all? isn't working?")
-  )
+  (assert! (any? [true "foo"] boolean?) "all? isn't working?"))
+
+(local {: view} (require :fennel))
+(fn pp [x] (print (view x)))
 
 
 
 {
+ : pp
  : all?
  : any?
  : function?

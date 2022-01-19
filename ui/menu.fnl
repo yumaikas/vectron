@@ -1,5 +1,6 @@
 (local f (require :f))
 (local c (require :c))
+(local v (require :v))
 (local {:annex annex} (require :ui))
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
@@ -12,8 +13,8 @@
     {
      :pos [px py]
      :drawn-txt txt-drawn
+     :dims [w h]
      :on-click click } button)
-    (local (w h) (txt-drawn:getDimensions))
     (local x px)
     (local y py)
     (when (and
@@ -42,19 +43,24 @@
 
 (fn button [pos font text on-click] 
   (local txt (gfx.newText font text))
+  (local (w h) (txt:getDimensions))
   (annex {
           :type :button
           :drawn-txt txt
           : pos
+          :dims (v.add [w h] [10 0])
           :code {:update update-button 
                   :draw draw-button }
           : on-click }))
 
 (fn text [pos font text]
+  (local txt (gfx.newText font text))
+  (local (w h) (txt:getDimensions))
   (annex {:type :text
           : font
+          :dims (v.add [w h] [10 0])
           : pos
-          : text }))
+          : txt }))
 
 (fn image [rect image]
   (annex {:type :image
