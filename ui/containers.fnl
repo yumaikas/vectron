@@ -31,7 +31,9 @@
   (each [_ child (ipairs self.children)]
     (child.code.draw child)))
 
-(fn update [self])
+(fn update [self dt]
+  (each [_ child (ipairs self.children)]
+    (child.code.update child dt)))
 
 (fn can-stack? [el] el.code)
 (fn stack [dir pos children] 
@@ -47,6 +49,4 @@
                 })]
     (layout me) me))
 
-{
- :stack stack
- }
+{ : stack }

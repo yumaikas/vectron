@@ -38,7 +38,7 @@
                 (menu.text [0 0] assets.font "|")
                 (menu.button [0 0] assets.font "QUIT!" #(love.event.quit 0))
                 ])
-     (canvas.make [30 30 900 550] canvas-dbg )
+     (canvas.make [30 30 550 550] canvas-dbg )
      canvas-dbg
      ])
   (ui.add-layer [

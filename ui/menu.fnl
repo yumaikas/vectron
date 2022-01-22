@@ -13,10 +13,10 @@
     {
      :pos [px py]
      :drawn-txt txt-drawn
-     :dims [w h]
      :on-click click } button)
     (local x px)
     (local y py)
+    (local (w h) (txt-drawn:getDimensions))
     (when (and
             (c.pt-in-rect? [mx my] [x y w h])
             love.mouse.isJustPressed)
@@ -31,7 +31,7 @@
   (local x px)
   (local y py)
   (when (c.pt-in-rect? [mx my] [x y w h])
-    (gfx.setColor [ 1 0 1 ])
+    (gfx.setColor [ 1 0.5 1 ])
     (gfx.polygon :fill
                  [(- x 3) y
                   (+ x w) y
@@ -58,6 +58,9 @@
   (local (w h) (txt:getDimensions))
   (annex {:type :text
           : font
+          :code {
+                 :update (fn [self dt]) 
+                 :draw (fn [self dt] (gfx.draw self.txt (unpack self.pos)) ) } 
           :dims (v.add [w h] [10 0])
           : pos
           : txt }))

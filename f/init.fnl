@@ -6,6 +6,8 @@
 (fn number? [t] (= (type t) :number))
 (fn boolean? [t] (= (type t) :boolean))
 (fn string? [t] (= (type t) :string))
+(fn even? [n] (and (number? n) (= (% n 2) 0)))
+
 (fn all? [tbl pred] 
   (or (table? tbl) (error "all expects a table in slot 1"))
   (or (function? pred) (error "all expects a in slot 2"))
@@ -23,8 +25,7 @@
   (local tlen (length tbl))
   (var idx 1)
   (var continue true)
-  (while (and continue (< idx tlen))
-    (set continue (not (pred (. tbl idx))))
+  (while (not (pred (. tbl idx)))
     (set idx (+ idx 1)))
   (if (<= idx tlen)
     (. tbl idx)
@@ -51,7 +52,9 @@
   (assert! (all? [1 2 3] number?) "all? isn't working?")
   (assert! (any? [1 2 3] number?) "any? isn't working?")
   (assert! (not (any? [true "foo"] number?)) "all? isn't working?")
-  (assert! (any? [true "foo"] boolean?) "all? isn't working?"))
+  (assert! (any? [true "foo"] boolean?) "all? isn't working?")
+  (assert! (= 2 (find [1 2 3] even?)) "Didn't find 2 via even? !")
+  (even? {}))
 
 (local {: view} (require :fennel))
 (fn pp [x] (print (view x)))
@@ -60,6 +63,7 @@
 
 {
  : pp
+ : find
  : all?
  : any?
  : function?
