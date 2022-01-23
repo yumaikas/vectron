@@ -42,13 +42,19 @@
      canvas-dbg
      ])
   (ui.add-layer [
-                 ; (menu.fps [10 10])
+                  (menu.fps [10 10])
                  ])
   (do))
 
 (fn love.draw []
   (gfx.setFont assets.font)
   (ui.draw))
+
+(fn love.focus [f] 
+  ; A hack to try to make it so that
+  ; clicking in/out of the window works
+  (set love.mouse.isJustPressed true))
+(fn love.mousefocus [f] (do))
 
 (fn love.update [dt]
   (ui.update dt)

@@ -30,15 +30,30 @@
     ))
 
 (fn draw [canvas]
-  (local {:pos [x y] :dims [w h]} canvas)
-  (gfx.setColor [0 1 0])
-  (when (> (length canvas.points) 1)
-    (gfx.line (v.flatten canvas.points)))
-  (gfx.setColor [1 1 1])
-  (gfx.rectangle :line x y w h)
+  (let 
+    [pt-count (length canvas.points)
+     {:pos [x y] :dims [w h]} canvas 
+     (mx my) (love.mouse.getPosition)
+     mpt [mx my] ]
+    (if 
 
-  ; TODO: Display hover over points
-  )
+      (> pt-count 1)
+      (do
+        ; Lay out the line
+        (gfx.setColor [0 1 0])
+        (gfx.line (v.flatten canvas.points))
+        ; Draw the hover point, w/e it is
+        (each [_ pt (ipairs canvas.points)]
+          (when (< (v.dist mpt pt) 10)
+            (gfx.setColor [0.2 0.2 1])
+            (gfx.circle :line (. pt 1) (. pt 2) 5))))
+
+      (= pt-count 1)
+      (let [[x y] (. canvas.points 1)]
+        (gfx.circle :line x y 4)))
+
+    (gfx.setColor [1 1 1])
+    (gfx.rectangle :line x y w h)))
 
 (fn update [canvas dt]
   (local {:debug outlbl } canvas)
@@ -47,6 +62,7 @@
         in-canvas (c.pt-in-rect? [mx my] canvas.rect) 
         just-clicked? love.mouse.isJustPressed]
     (when (and in-canvas just-clicked?)
+      (pp "LORRE")
       (table.insert
         canvas.points [mx my])))
   )
