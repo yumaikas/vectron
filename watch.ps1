@@ -1,1 +1,1 @@
-eye.exe (ls *.lua) (ls *.fnl) assets/ game/ ui/ f/ c/ v/ --cmd .\love-bins\lovec.exe .
+eye.exe (ls *.lua) (ls *.fnl) assets/ game/ ui/ f/ c/ v/ m/ --cmd .\love-bins\lovec.exe .

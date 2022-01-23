@@ -1,5 +1,6 @@
 (local f (require :f))
 (local c (require :c))
+(import-macros {: check} :m)
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
 
@@ -11,12 +12,12 @@
 
 
 (fn add-layer [layer]
-  (or (f.all? layer is-mine?) (error "Element constructed outside of module found!"))
+  (check (f.all? layer is-mine?) "Element constructed outside of module found!")
   (table.insert layers (annex layer))
   (pp layers))
 
 (fn swap-layers [new-layers] 
-  (or (f.all? new-layers is-mine?) (error "Layers constructed outside of UI module!"))
+  (check (f.all? new-layers is-mine?) "Layers constructed outside of UI module!")
   (set layers new-layers))
 
 (fn get-layers [] 
