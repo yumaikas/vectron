@@ -1,6 +1,7 @@
 (local fennel (require :fennel))
 (local timer (require :game.timer))
 (local f (require :f))
+(import-macros {: each-in : check} :m)
 (local menu (require :ui.menu))
 (local canvas (require :ui.canvas))
 (local {:stack ui-stack } (require :ui.containers))
@@ -19,8 +20,11 @@
 (fn love.mousepressed [x y button istouch presses]
   (set love.mouse.isJustPressed true))
 
+
 (fn love.load [] 
   (print "XD")
+  (each-in k [1 2 3]
+        (print k))
 
   (var y-val 0)
   (var x-val 0)

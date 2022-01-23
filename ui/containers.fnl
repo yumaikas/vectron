@@ -1,6 +1,7 @@
 (local f (require :f))
 (local c (require :c))
 (local v (require :v))
+(import-macros {: each-in } :m)
 (local {:annex annex} (require :ui))
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
@@ -24,16 +25,16 @@
            [w h] el.dims]
           (set el.pos [cx cy])
           (set coord (v.add coord [w 0]))))))
-  (each [_ child (ipairs self.children)]
+  (each-in child self.children
     (move-coord child)))
 
 (fn draw [self]
-  (each [_ child (ipairs self.children)]
-    (child.code.draw child)))
+  (each-in child self.children
+        (child.code.draw child)))
 
 (fn update [self dt]
-  (each [_ child (ipairs self.children)]
-    (child.code.update child dt)))
+  (each-in child self.children
+         (child.code.update child dt)))
 
 (fn can-stack? [el] el.code)
 (fn stack [dir pos children] 

@@ -1,3 +1,4 @@
+(import-macros {: each-in} :m)
 (local f (require :f))
 
 (fn add [a b] 
@@ -14,8 +15,8 @@
   (accumulate [nums {}
                _ d (ipairs pts)]
               (do 
-                (for [i 1 (length d)]
-                  (table.insert nums (. d i)))
+                (each-in n d
+                  (table.insert nums n))
                 nums)))
 (fn dist [v1 v2]
   (let [[x1 y1] v1

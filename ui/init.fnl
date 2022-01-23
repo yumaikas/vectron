@@ -1,6 +1,6 @@
 (local f (require :f))
 (local c (require :c))
-(import-macros {: check} :m)
+(import-macros {: check : each-in } :m)
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
 
@@ -27,8 +27,8 @@
 
 (fn update [dt] 
   (local (mx my) (love.mouse.getPosition))
-  (each [_ layer (ipairs layers)]
-    (each [_ el (ipairs layer)]
+  (each-in layer layers
+    (each-in el layer
       (match el
         { :code {:update el-update } MODULE MODULE}
         (el-update el dt)
@@ -45,13 +45,13 @@
 
         _ (error (.. "Unmatched element in update " (view el)))
 
-      ))
-  ))
+        ))
+    ))
 
 (fn draw [] 
   (local (mx my) (love.mouse.getPosition))
-  (each [_ layer (ipairs layers)]
-    (each [_ el (ipairs layer)]
+  (each-in layer layers
+    (each-in el layer
       (match el
         { :code {:draw el-draw } MODULE MODULE}
         (el-draw el)
