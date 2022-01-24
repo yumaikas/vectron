@@ -7,6 +7,15 @@
 
 (local exports {})
 
+(fn ratio-place [xratio yratio rect] 
+  (let [[x y w h] rect ]
+    [(+ x (* w xratio)) (+ y (* h yratio))]))
+
+(fn point->ratio [point rect] 
+  (let [[px py] point
+        [x y w h] rect]
+    [(/ (- px x) w) (/ (- py y) h)]))
+
 (fn make [rect status] 
   (local [x y w h] rect)
   (let [big (math.max w h)
@@ -14,13 +23,13 @@
         ratio (/ small big)
         scale (if (> w h)  
                 [1.0 ratio] 
-                [ratio 1.0]) ]
+                [ratio 1.0]) 
+        ]
     (annex {
             :info 
-            { 
-             : scale }
+            { : scale }
             :debug status
-            :points []
+            :points [(ratio-place 0.5 0.5 rect)]
             :type :canvas
             :mode :add-points
             :code exports
