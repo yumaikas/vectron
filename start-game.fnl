@@ -32,10 +32,15 @@
   (fn y+= [by] (set y-val (+ y-val by)) y-val)
   (fn x+= [by] (set x-val (+ x-val by)) x-val)
   (local srv (server.make))
-  (f.pp server)
+  (f.pp srv)
   (print "QED")
   (local canvas-dbg (menu.text [300 300] assets.font ""))
-  (local blot (canvas.make [30 30 550 550] canvas-dbg))
+  (local blot (canvas.make [30 30 550 550] canvas-dbg srv))
+  (server.start srv { :canvas blot })
+  (f.pp (server.get-state srv))
+  (f.pp (server.get-state srv))
+  (f.pp (server.get-state srv))
+  (f.pp (server.get-state srv))
   (ui.add-layer 
     [
      (ui-stack :horizontal 
@@ -47,11 +52,10 @@
                 (menu.text [0 0] assets.font "|")
                 (menu.button [0 0] assets.font "QUIT!" #(love.event.quit 0))
                 ])
-     (canvas.make [30 30 550 550] canvas-dbg srv)
+     blot
      canvas-dbg
      ])
   (ui.add-layer [ (menu.fps [10 10]) ])
-  (server.start srv { :canvas blot })
   (do))
 
 (fn love.draw []

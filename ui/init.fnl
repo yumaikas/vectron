@@ -13,8 +13,7 @@
 
 (fn add-layer [layer]
   (check (f.all? layer is-mine?) "Element constructed outside of module found!")
-  (table.insert layers (annex layer))
-  (pp layers))
+  (table.insert layers (annex layer)))
 
 (fn swap-layers [new-layers] 
   (check (f.all? new-layers is-mine?) "Layers constructed outside of UI module!")
