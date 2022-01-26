@@ -13,6 +13,10 @@
 
 (fn add-layer [layer]
   (check (f.all? layer is-mine?) "Element constructed outside of module found!")
+  (each-in child layer
+    (when (and child.code child.code.layout)
+      (child.code.layout child)))
+
   (table.insert layers (annex layer)))
 
 (fn swap-layers [new-layers] 
@@ -40,7 +44,6 @@
           (gfx.setFont fnt)
           (gfx.print txt x y))
         {:type :fps} (do)
-
 
         _ (error (.. "Unmatched element in update " (view el)))
 

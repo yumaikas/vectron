@@ -56,7 +56,7 @@
         (gfx.setColor [0 1 0])
         (gfx.line (v.flatten points))
         ; Draw the hover point, w/e it is
-        (each [_ pt (ipairs canvas.server.points)]
+        (each [_ pt (ipairs points)]
           (when (< (v.dist mpt pt) 10)
             (gfx.setColor [0.2 0.2 1])
             (gfx.circle :line (. pt 1) (. pt 2) 5))))
@@ -69,15 +69,17 @@
     (gfx.rectangle :line x y w h)))
 
 (fn update [canvas dt]
-  (local {:debug outlbl : server } canvas)
+  (local {:debug outlbl :server srv } canvas)
+  (local {: mode} (server.get-state srv))
   (set outlbl.text (view canvas.info))
   (let [(mx my) (love.mouse.getPosition)
         in-canvas (c.pt-in-rect? [mx my] canvas.rect) 
         just-clicked? love.mouse.isJustPressed]
     (when (and in-canvas just-clicked?)
       ; Do things based on current mode
-      (do)
-      ; (table.insert canvas.points [mx my])
+      (match mode 
+        :insert
+        (server.add-point srv [mx my]))
       ))
   )
 

@@ -8,6 +8,8 @@
 (fn string? [t] (= (type t) :string))
 (fn even? [n] (and (number? n) (= (% n 2) 0)))
 
+(local pack (or table.pack (fn [...] [...])))
+
 (fn all? [tbl pred] 
   (or (table? tbl) (error "all expects a table in slot 1"))
   (or (function? pred) (error "all expects a in slot 2"))
@@ -59,6 +61,15 @@
 (local {: view} (require :fennel))
 (fn pp [x] (print (view x)))
 
+(var in-debug? false)
+
+(fn with-debug [f] 
+  (set in-debug? true)
+  (let [ret (pack (pcall f))]
+    (set in-debug? false)
+    (match ret
+      [true & rest] (unpack rest)
+      [false & rest] (error (unpack rest)))))
 
 
 {
@@ -71,4 +82,6 @@
  : string?
  : number?
  : table?
+ : with-debug
+ :in-debug? (fn [] in-debug?)
 }

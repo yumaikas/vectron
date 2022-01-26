@@ -2,54 +2,58 @@
 (local {: view} (require :fennel))
 (import-macros {: check} :m)
 
-(var base% (fn [] (do (f.pp "BAD_BASE"))))
+(local s {})
 
-(fn update% [server dt]
-  (f.pp "UPDATE!")
-  (base% server))
+(fn s.update [server dt]
+  (f.pp "UPDATE!"))
 
-(fn set-mode% [server new-mode] 
+(fn s.set-mode [server new-mode] 
   ; TODO: Validate mode transisions
-  (set server.mode new-mode)
-  (base% server))
+  (set server.mode new-mode))
 
-(fn base% [server]
-  (match (coroutine.yield)
-    (:update dt) (update% server dt)
-    (:set-mode new-mode) (set-mode% server new-mode)
-    (:state) (do (coroutine.yield server) (base% server))
-    unmatched (error (.. "Unknown request " (view unmatched))))
-  (base% server))
+(fn s.add-point [server pt]
+  (pp "ADD")
+  (table.insert server.points pt))
 
-(fn init-canvas% [server canvas]
-  (pp "INIT")
+(fn s.base [server]
+  (while true
+    (match (coroutine.yield)
+      (:add-point pt) (s.add-point server pt)
+      (:update dt) (s.update server dt)
+      (:set-mode new-mode) (s.set-mode server new-mode)
+      (:state) (do (coroutine.yield server))
+      unmatched (error (.. "Unknown request " (view unmatched))))))
+
+(fn s.init-canvas [server canvas]
   (table.insert server.points (canvas:do-place 0.5 0.5))
-  (base% server))
+  (s.base server))
 
 (fn pack [...] 
   (let [t [...]]
     (set t.n (length t))
     t))
 
-(fn serve% [server] 
+(fn s.serve [server] 
   (pp "START")
   (let [vals (pack (coroutine.yield))]
     (match vals
-      [:start {: canvas }] (init-canvas% server canvas)
+      [:start {: canvas }] (s.init-canvas server canvas)
       _ (error (.. "Given " (view vals) " instead of expected start inputs!")))))
 
 (fn make [] 
-  (let [srv (coroutine.create serve%)]
-    (coroutine.resume srv {:mode :draw :points []})
+  (let [srv (coroutine.create s.serve)]
+    (coroutine.resume srv {:mode :insert :points []})
     (match (coroutine.status srv)
       :dead (let [(_ msg) (coroutine.resume srv)]
               (error msg))
       _ srv)))
 
+
 {: make 
  :start (fn [coro inputs] 
-          (f.pp (coroutine.resume coro :start inputs)))
+           (coroutine.resume coro :start inputs))
 
+ :add-point (fn [coro pt] (coroutine.resume coro :add-point pt))
  :set-mode (fn [coro mode] (coroutine.resume coro :set-mode mode))
  :update (fn [coro dt] (coroutine.resume coro :update dt))
  :get-state (fn [coro] (let [(ok msg) (coroutine.resume coro :state)]

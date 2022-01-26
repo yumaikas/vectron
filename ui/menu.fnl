@@ -20,6 +20,7 @@
     (when (and
             (c.pt-in-rect? [mx my] [x y w h])
             love.mouse.isJustPressed)
+      (f.pp "CLICK")
       (click)))
 
 (fn draw-button [button]
@@ -31,6 +32,7 @@
   (local x px)
   (local y py)
   (when (c.pt-in-rect? [mx my] [x y w h])
+    (f.pp love.mouse.isJustPressed)
     (gfx.setColor [ 1 0.5 1 ])
     (gfx.polygon :fill
                  [(- x 3) y
