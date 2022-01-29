@@ -1,4 +1,5 @@
-(import-macros {: each-in} :m)
+(import-macros {: each-in : check} :m)
+(local {: view} (require :fennel))
 (local f (require :f))
 
 (fn add [a b] 
@@ -19,6 +20,8 @@
                   (table.insert nums n))
                 nums)))
 (fn dist [v1 v2]
+  (check v1 "v1 nil in dist!")
+  (check v2 "v2 nil in dist!")
   (let [[x1 y1] v1
         [x2 y2] v2]
   (math.sqrt 

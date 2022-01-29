@@ -22,16 +22,29 @@
   valid)
 
 (fn find [tbl pred] 
-  (or (table? tbl) (error "all expects a table in slot 1"))
-  (or (function? pred) (error "all expects a in slot 2"))
+  (or (table? tbl) (error "find expects a table in slot 1"))
+  (or (function? pred) (error "find expects a in slot 2"))
   (local tlen (length tbl))
   (var idx 1)
   (var continue true)
-  (while (not (pred (. tbl idx)))
+  (while (and (. tbl idx) (not (pred (. tbl idx))))
     (set idx (+ idx 1)))
   (if (<= idx tlen)
     (. tbl idx)
     nil))
+
+(fn index-of [tbl el] 
+  (or (table? tbl) (error "find expects a table in slot 1"))
+  (or el (error "el cannot be nil in index-of"))
+
+  (local tlen (length tbl))
+  (var idx 1)
+  (while (and (. tbl idx) (not= el (. tbl idx)))
+    (set idx (+ idx 1)))
+  (if (<= idx tlen)
+    idx
+    nil))
+
 
 (fn any? [tbl pred]
   (or (table? tbl) (error "all expects a table in slot 1"))
@@ -75,6 +88,7 @@
 {
  : pp
  : find
+ : index-of
  : all?
  : any?
  : function?

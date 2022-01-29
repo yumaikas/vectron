@@ -12,27 +12,25 @@
   (local 
     {
      :pos [px py]
-     :drawn-txt txt-drawn
+     : txt
      :on-click click } button)
     (local x px)
     (local y py)
-    (local (w h) (txt-drawn:getDimensions))
+    (local (w h) (txt:getDimensions))
     (when (and
             (c.pt-in-rect? [mx my] [x y w h])
             love.mouse.isJustPressed)
-      (f.pp "CLICK")
       (click)))
 
 (fn draw-button [button]
   (local (mx my) (love.mouse.getPosition))
   (local 
     { :pos [px py]
-     :drawn-txt txt-drawn } button)
-  (local (w h) (txt-drawn:getDimensions))
+     : txt } button)
+  (local (w h) (txt:getDimensions))
   (local x px)
   (local y py)
   (when (c.pt-in-rect? [mx my] [x y w h])
-    (f.pp love.mouse.isJustPressed)
     (gfx.setColor [ 1 0.5 1 ])
     (gfx.polygon :fill
                  [(- x 3) y
@@ -40,15 +38,25 @@
                   (+ x w) (+ y h)
                   (- x 3) (+ y h)]))
   (gfx.setColor [ 1 1 1 ])
-  (gfx.draw txt-drawn px py))
+  (gfx.draw txt px py))
 
+
+(fn set-text [el new-text]
+  ; TODO: If this is used anywhere it would be 
+  ; relevant, figure out how to invalidate layout.
+  ; But it is not just yet
+  (local txt (gfx.newText el.font new-text))
+  
+  (set el.dims (let [(w h) (txt:getDimensions)]
+                  (v.add [w h] [10 0])))
+  (set el.txt txt))
 
 (fn button [pos font text on-click] 
   (local txt (gfx.newText font text))
   (local (w h) (txt:getDimensions))
   (annex {
           :type :button
-          :drawn-txt txt
+          : txt
           : pos
           :dims (v.add [w h] [10 0])
           :code {:update update-button 
@@ -65,6 +73,7 @@
                  :draw (fn [self dt] (gfx.draw self.txt (unpack self.pos)) ) } 
           :dims (v.add [w h] [10 0])
           : pos
+          : set-text
           : txt }))
 
 (fn image [rect image]

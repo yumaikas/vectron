@@ -5,6 +5,7 @@
 (local {:annex annex} (require :ui))
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
+(import-macros {: each-in} :m)
 
 (local exports {})
 
@@ -41,6 +42,9 @@
             :dims [w h]})
     ))
 
+(fn highlighted-point [points mpos]
+  (f.find points #(< (v.dist mpos $) 10)))
+
 (fn draw [canvas]
   (let 
     [points (. (server.get-state canvas.server) :points)
@@ -56,10 +60,10 @@
         (gfx.setColor [0 1 0])
         (gfx.line (v.flatten points))
         ; Draw the hover point, w/e it is
-        (each [_ pt (ipairs points)]
-          (when (< (v.dist mpt pt) 10)
+        (let [hpt (highlighted-point points [mx my])]
+          (when hpt
             (gfx.setColor [0.2 0.2 1])
-            (gfx.circle :line (. pt 1) (. pt 2) 5))))
+            (gfx.circle :line (. hpt 1) (. hpt 2) 5))))
 
       (= pt-count 1)
       (let [[x y] (. points 1)]
@@ -73,15 +77,20 @@
   (local {: mode} (server.get-state srv))
   (set outlbl.text (view canvas.info))
   (let [(mx my) (love.mouse.getPosition)
+        points (server.points srv)
         in-canvas (c.pt-in-rect? [mx my] canvas.rect) 
         just-clicked? love.mouse.isJustPressed]
     (when (and in-canvas just-clicked?)
       ; Do things based on current mode
       (match mode 
-        :insert
-        (server.add-point srv [mx my]))
-      ))
-  )
+        :add
+        (server.add-point srv [mx my])
+        :delete
+        (let [hlpt (highlighted-point points [mx my])]
+          (when hlpt
+            (server.remove-point srv hlpt)))
+
+      ))))
 
 (set exports.make make)
 (set exports.draw draw)
