@@ -8,6 +8,15 @@
 (fn string? [t] (= (type t) :string))
 (fn even? [n] (and (number? n) (= (% n 2) 0)))
 
+(fn uuid []
+  (string.gsub "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx" "[xy]" 
+    (fn [c] 
+      (string.format 
+        "%x" 
+        (if (= c "x")
+          (math.random 0 0xf)
+          (math.random 8 0xb))))))
+
 (local pack (or table.pack (fn [...] [...])))
 
 (fn all? [tbl pred] 
@@ -57,7 +66,6 @@
     (set idx (+ idx 1)))
   (not continue))
 
-
 (fn tests! [] 
   (print "")
   (assert! (function? #(+ 1 2)) "#() is not detected as a function!")
@@ -84,7 +92,6 @@
       [true & rest] (unpack rest)
       [false & rest] (error (unpack rest)))))
 
-
 {
  : pp
  : find
@@ -95,7 +102,10 @@
  : boolean?
  : string?
  : number?
+ :values (fn [tbl] (icollect [_ v (pairs tbl)] v))
+ :keys (fn [tbl] (icollect [k _ (pairs tbl)] k))
  : table?
  : with-debug
+ : uuid
  :in-debug? (fn [] in-debug?)
 }

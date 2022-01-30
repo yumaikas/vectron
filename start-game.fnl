@@ -1,6 +1,7 @@
 (local fennel (require :fennel))
 (local timer (require :game.timer))
 (local f (require :f))
+(local v (require :v))
 (local command-map (require :ui.cmd))
 (import-macros {: each-in : check} :m)
 (local menu (require :ui.menu))
@@ -22,7 +23,18 @@
 (fn love.mousepressed [x y button istouch presses]
   (set love.mouse.isJustPressed true))
 
+(fn love.mousereleased [x y button istouch]
+  (set love.mouse.isJustReleased true))
+
+(fn love.mousemoved [x y dx dy] 
+  (when (or (not= dx 0) (not= dy 0))
+    (set love.mouse.delta [dx dy])))
+
 (fn love.load [] 
+
+  ; Make these configurable?
+  (gfx.setLineStyle :rough)
+  (gfx.setLineWidth 1)
 
   (var y-val 0)
   (var x-val 0)
@@ -54,4 +66,6 @@
 (fn love.update [dt]
   (ui.update dt)
   (timer.update dt)
-  (set love.mouse.isJustPressed false))
+  (set love.mouse.isJustPressed false)
+  (set love.mouse.isJustReleased false)
+  (set love.mouse.delta nil))

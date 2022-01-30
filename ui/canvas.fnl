@@ -34,6 +34,7 @@
             :type :canvas
             :code { :update exports.update 
                    :draw exports.draw }
+            :drag-handle nil
 
             :do-place (fn [self xratio yratio] (ratio-place xratio yratio self.rect))
 
@@ -79,8 +80,11 @@
   (let [(mx my) (love.mouse.getPosition)
         points (server.points srv)
         in-canvas (c.pt-in-rect? [mx my] canvas.rect) 
-        just-clicked? love.mouse.isJustPressed]
-    (when (and in-canvas just-clicked?)
+        just-pressed? love.mouse.isJustPressed
+        just-released? love.mouse.isJustReleased 
+        mouse-moved? love.mouse.delta
+        ]
+    (when (and in-canvas just-pressed?)
       ; Do things based on current mode
       (match mode 
         :add
@@ -89,8 +93,22 @@
         (let [hlpt (highlighted-point points [mx my])]
           (when hlpt
             (server.remove-point srv hlpt)))
-
-      ))))
+        :move
+        (let [hlpt (highlighted-point points [mx my])]
+          (when hlpt
+              (set canvas.drag-handle (server.begin-drag srv hlpt))))
+      ))
+    (when just-released? 
+      (match mode
+        :move
+        (when canvas.drag-handle
+          (server.end-drag srv canvas.drag-handle [mx my])
+          (set canvas.drag-handle nil))))
+    (when mouse-moved?
+      (match mode
+        :move
+        (when canvas.drag-handle
+          (server.update-drag srv canvas.drag-handle [mx my]))))))
 
 (set exports.make make)
 (set exports.draw draw)
