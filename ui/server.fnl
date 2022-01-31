@@ -1,4 +1,5 @@
 (local f (require :f))
+(local v (require :v))
 (local {: view} (require :fennel))
 (import-macros {: check} :m)
 
@@ -55,6 +56,47 @@
       (error (.. "Tried to end a non-existant handle: " handle)))))
 
 
+(fn copy [text]
+  (love.system.setClipboardText text))
+
+(fn s.set-copy-mode [server mode]
+  (check (f.index-of [:lua :fennel] mode) (.. "Cannot set copy-mode to " mode))
+  (set server.copy-mode mode))
+
+(fn luapts [points] 
+  (.. "{ " (table.concat points ", ") " }"))
+
+(fn fennelpts [points]
+  (.. "[ " (table.concat points " ") " ]"))
+
+; TODO: Set up lpeg or something like that to do this better
+(fn loadfennelpts [text] 
+  (let [points []]
+  (each [x y (string.gfind text "($d+)%s+(%d+)")]
+    (table.insert points [x y]))
+    points))
+
+(fn loadluapts [text]
+  (let [points []]
+    (each [x y (string.gfint text "(%d+)%s*,%s*(%d+)")]
+      (table.insert points [x y]))
+    points))
+
+(fn s.copy-code [server] 
+  (let [copy-mode server.copy-mode]
+    (match copy-mode
+      :lua (copy (luapts (v.flatten server.points)))
+      :fennel (copy (fennelpts (v.flatten server.points)))
+      _ (error (.. "Unknown copy-mode" copy-mode) ))))
+
+(fn s.load-paste [server]
+  (let [copy-mode server.copy-mode
+        input (love.system.getClipboardText)]
+    (match copy-mode
+      :lua (set server.points (loadluapts input))
+      :fennel (set server.points (loadfennelpts input))
+      _ (error (.. "Unknown copy-mode in load-paste" copy-mode)))))
+
 (fn s.base [server]
   (while true
     (match (coroutine.yield)
@@ -65,9 +107,12 @@
       (:end-drag handle coord) (s.end-drag server handle coord)
       (:update dt) (s.update server dt)
       (:set-mode new-mode) (s.set-mode server new-mode)
-      (:state) (do (coroutine.yield server))
-      (:points) (do (coroutine.yield server.points))
-      (:mode) (do (coroutine.yield server.mode))
+      (:state) (coroutine.yield server)
+      (:points) (coroutine.yield server.points)
+      (:mode)  (coroutine.yield {:mode server.mode :copy-mode server.copy-mode })
+      (:copy-code) (s.copy-code server)
+      (:load-code) (s.load-paste server)
+      (:set-copy-mode mode) (s.set-copy-mode server mode)
       unmatched (error (.. "Unknown request " (view unmatched))))))
 
 (fn s.init-canvas [server canvas]
@@ -90,6 +135,7 @@
 (local server-start-state
   {
    :mode :add
+   :copy-mode :fennel
    :points []
    :handles {}
    })
@@ -111,11 +157,7 @@
       (do (coroutine.resume coro :ACK) msg)
       (error msg))))
 
-(fn cast [coro ...] 
-  (let [(ok msg) (coroutine.resume coro ...)]
-    (if ok
-      nil
-      (error msg))))
+(fn cast [coro ...] (assert (coroutine.resume coro ...)))
 
 {: make 
  :start (fn [coro inputs] 
@@ -127,8 +169,11 @@
  :update-drag (fn [coro handle coord] (cast coro :update-drag handle coord))
  :end-drag (fn [coro handle coord] (cast coro :end-drag handle coord))
 
+ :copy-code (fn [coro] (cast coro :copy-code))
+ :load-code (fn [coro] (cast coro :load-code))
 
  :set-mode (fn [coro mode] (cast coro :set-mode mode))
+ :set-copy-mode (fn [coro mode] (cast coro :set-copy-mode mode))
  :update (fn [coro dt] (cast coro :update dt))
  :mode (fn [coro] (call coro :mode))
  :points (fn [coro] (call coro :points))

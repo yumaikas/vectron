@@ -34,6 +34,8 @@
 
   ; Make these configurable?
   (gfx.setLineStyle :rough)
+  ; TODO: Switch to none
+  (gfx.setLineJoin :bevel)
   (gfx.setLineWidth 1)
 
   (var y-val 0)
@@ -51,6 +53,9 @@
      (command-map.make srv [40 600])
      ])
   (ui.add-layer [ (menu.fps [10 10]) ])
+
+  (let [(maj min rev codename) (love.getVersion)]
+    (f.pp [maj min rev codename]))
   (do))
 
 (fn love.draw []

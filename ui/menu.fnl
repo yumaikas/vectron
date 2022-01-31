@@ -45,11 +45,11 @@
   ; TODO: If this is used anywhere it would be 
   ; relevant, figure out how to invalidate layout.
   ; But it is not just yet
-  (local txt (gfx.newText el.font new-text))
+
+  (el.txt:set new-text)
   
-  (set el.dims (let [(w h) (txt:getDimensions)]
-                  (v.add [w h] [10 0])))
-  (set el.txt txt))
+  (set el.dims (let [(w h) (el.txt:getDimensions)]
+                  (v.add [w h] [10 0]))))
 
 (fn button [pos font text on-click] 
   (local txt (gfx.newText font text))
@@ -58,6 +58,7 @@
           :type :button
           : txt
           : pos
+          : set-text
           :dims (v.add [w h] [10 0])
           :code {:update update-button 
                   :draw draw-button }

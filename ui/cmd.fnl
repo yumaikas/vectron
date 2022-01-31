@@ -10,12 +10,30 @@
 (fn draw [me]
   (me.rows.code.draw me.rows))
 
-(fn update [me dt] 
+(fn gerundize [mode] 
+  (match mode
+    :add :adding
+    :delete :deleting
+    :move :moving
+    _ (error (.. "Unrecognized mode passed to gerundise: " mode))))
 
+
+(fn export-switch-text [copy-mode]
+  (match copy-mode
+    :lua    "F: Switch to Fennel"
+    :fennel "L: Switch to Lua   "))
+
+
+(fn update [me dt] 
   (local {:element-map elements
           :server srv } me)
-  (let [{:mode mode} elements]
-    (mode:set-text (: (server.mode srv) :gsub "^%l" string.upper)))
+  (let [{:mode mode-el :code-switch switch-btn} elements
+        {: mode : copy-mode } (server.mode srv) ]
+    (switch-btn:set-text (export-switch-text copy-mode))
+    (mode-el:set-text 
+      (.. 
+        (: (gerundize mode) :gsub "^%l" string.upper) " points. "
+        "Import/Export to " (copy-mode:gsub "^%l" string.upper))))
 
   ; Forward events and such
   (me.rows.code.update me.rows))
@@ -49,11 +67,27 @@
     (ui-stack 
       :horizontal [0 0]
       [ (txt "POINTS:") addbtn (txt "|") movebtn (txt "|") delbtn ])))
+
+  (fn switch-export [] 
+    (let [{:copy-mode m} (server.mode srv)]
+      (match m
+        :fennel (server.set-copy-mode srv :lua)
+        :lua (server.set-copy-mode srv :fennel))))
+
   (local row2
-    (let [quitbtn (bbtn :quit "Q: Quit" (fn [] (love.event.quit 0))) ]
-      (ui-stack 
-        :horizontal [0 0]
-        [(txt "   APP:") quitbtn])))
+    (ui-stack 
+      :horizontal [0 0]
+      [(txt "   APP:") 
+       (bbtn :copy "C: Copy Code" #(server.copy-code srv)) (txt "|")
+       (bbtn :code-switch (export-switch-text :fennel) switch-export) (txt "|")  
+       (bbtn :quit "Q: Quit" #(love.event.quit 0)) ]))
+
+  ; RESUME
+  (local row3
+    (ui-stack
+      :horizontal [0 0]
+      [ ] ))
+
 
   (fn layout [me] 
     (me.rows.code.layout me.rows))
