@@ -28,12 +28,15 @@
   (local {:element-map elements
           :server srv } me)
   (let [{:mode mode-el :code-switch switch-btn} elements
+        status-line (server.status-line srv)
         {: mode : copy-mode } (server.mode srv) ]
     (switch-btn:set-text (export-switch-text copy-mode))
-    (mode-el:set-text 
-      (.. 
-        (: (gerundize mode) :gsub "^%l" string.upper) " points. "
-        "Import/Export to " (copy-mode:gsub "^%l" string.upper))))
+    (if status-line
+      (mode-el:set-text status-line)
+      (mode-el:set-text 
+        (.. 
+          (: (gerundize mode) :gsub "^%l" string.upper) " points. "
+          "Import/Export to " (copy-mode:gsub "^%l" string.upper)))))
 
   ; Forward events and such
   (me.rows.code.update me.rows))
@@ -60,13 +63,16 @@
     (ui-stack :horizontal [0 0] [ (txt "  MODE:") mode-txt ]))
 
   (local row1
-    (let [addbtn (bbtn :add "A: Add" #(server.set-mode srv :add))
-          delbtn (bbtn :del "D: Delete" #(server.set-mode srv :delete))
-          movebtn (bbtn :move "M: Move" #(server.set-mode srv :move)) 
-          spacer (txt "|") ] 
     (ui-stack 
       :horizontal [0 0]
-      [ (txt "POINTS:") addbtn (txt "|") movebtn (txt "|") delbtn ])))
+      [ 
+       (txt "POINTS:")
+       (bbtn :add "A: Add" #(server.set-mode srv :add)) (txt "|") 
+       (bbtn :move "M: Move" #(server.set-mode srv :move))  (txt "|")
+       (bbtn :copy "I: Import" #(server.load-code srv)) (txt "|")
+       (bbtn :copy "E: Export" #(server.copy-code srv)) (txt "|")
+       (bbtn :del "D: Delete" #(server.set-mode srv :delete))
+       ]))
 
   (fn switch-export [] 
     (let [{:copy-mode m} (server.mode srv)]
@@ -78,7 +84,6 @@
     (ui-stack 
       :horizontal [0 0]
       [(txt "   APP:") 
-       (bbtn :copy "C: Copy Code" #(server.copy-code srv)) (txt "|")
        (bbtn :code-switch (export-switch-text :fennel) switch-export) (txt "|")  
        (bbtn :quit "Q: Quit" #(love.event.quit 0)) ]))
 

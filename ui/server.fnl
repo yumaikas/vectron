@@ -72,15 +72,20 @@
 ; TODO: Set up lpeg or something like that to do this better
 (fn loadfennelpts [text] 
   (let [points []]
-  (each [x y (string.gfind text "($d+)%s+(%d+)")]
-    (table.insert points [x y]))
-    points))
+    (each [x y (string.gfind text "(%d+)%s+(%d+)")]
+      (table.insert points [x y]))
+    (f.pp points)
+    (if (> (length points) 0)
+      (values :ok points)
+      (values :error "Found no points"))))
 
 (fn loadluapts [text]
   (let [points []]
-    (each [x y (string.gfint text "(%d+)%s*,%s*(%d+)")]
+    (each [x y (string.gfind text "(%d+)%s*,%s*(%d+)")]
       (table.insert points [x y]))
-    points))
+    (if (> (length points) 0)
+      (values :ok points)
+      (values :error "Found no points"))))
 
 (fn s.copy-code [server] 
   (let [copy-mode server.copy-mode]
@@ -89,31 +94,65 @@
       :fennel (copy (fennelpts (v.flatten server.points)))
       _ (error (.. "Unknown copy-mode" copy-mode) ))))
 
+(fn pts-loader-for-mode [copy-mode]
+  (match copy-mode 
+    :lua loadluapts 
+    :fennel loadfennelpts 
+    _ (error (.. "Unknown copy-mode in pts-loader-for-mode " copy-mode))))
+
+(fn s.set-status [server status] 
+  (set server.status-line status))
+
+(fn s.clear-status [server] 
+  (set server.status-line nil))
+
 (fn s.load-paste [server]
   (let [copy-mode server.copy-mode
-        input (love.system.getClipboardText)]
-    (match copy-mode
-      :lua (set server.points (loadluapts input))
-      :fennel (set server.points (loadfennelpts input))
-      _ (error (.. "Unknown copy-mode in load-paste" copy-mode)))))
+        input (love.system.getClipboardText)
+        loader (pts-loader-for-mode copy-mode)
+        (ok pts) (loader input) ]
+    (f.pp input)
+    (if (= ok :ok)
+      (set server.points pts)
+      (do (print pts)
+        (s.set-status server "Didn't find any points on the clipboard")))))
 
 (fn s.base [server]
   (while true
+    (var drop-status true)
+    (fn keep-status [] (set drop-status false))
+    
     (match (coroutine.yield)
       (:add-point pt) (s.add-point server pt)
       (:remove-point pt) (s.remove-point server pt)
-      (:begin-drag pt) (coroutine.yield (s.begin-drag server pt))
+
+      (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (:update-drag handle coord) (s.update-drag server handle coord)
       (:end-drag handle coord) (s.end-drag server handle coord)
-      (:update dt) (s.update server dt)
+
       (:set-mode new-mode) (s.set-mode server new-mode)
-      (:state) (coroutine.yield server)
-      (:points) (coroutine.yield server.points)
-      (:mode)  (coroutine.yield {:mode server.mode :copy-mode server.copy-mode })
       (:copy-code) (s.copy-code server)
-      (:load-code) (s.load-paste server)
       (:set-copy-mode mode) (s.set-copy-mode server mode)
-      unmatched (error (.. "Unknown request " (view unmatched))))))
+
+      (:load-code) (do (keep-status) (s.load-paste server))
+      (:update dt) (do (keep-status) 
+                     (s.update server dt))
+
+      (:status-line) (do (keep-status)
+                       (coroutine.yield server.status-line))
+
+      (:state) (do (keep-status) 
+                 (coroutine.yield server))
+      (:points) (do (keep-status) 
+                  (coroutine.yield server.points))
+      (:mode) (do (keep-status) 
+                (coroutine.yield {:mode server.mode :copy-mode server.copy-mode }))
+
+      unmatched (error (.. "Unknown request " (view unmatched))))
+    (when drop-status
+      (f.pp "dropping status")
+      (s.clear-status server))
+    ))
 
 (fn s.init-canvas [server canvas]
   (table.insert server.points (canvas:do-place 0.5 0.5))
@@ -178,4 +217,5 @@
  :mode (fn [coro] (call coro :mode))
  :points (fn [coro] (call coro :points))
  :get-state (fn [coro] (call coro :state))
+ :status-line (fn [coro] (call coro :status-line))
  }

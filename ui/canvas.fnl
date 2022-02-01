@@ -48,7 +48,7 @@
 
 (fn draw [canvas]
   (let 
-    [points (. (server.get-state canvas.server) :points)
+    [points (server.points canvas.server)
      pt-count (length points)
      {:pos [x y] :dims [w h]} canvas 
      (mx my) (love.mouse.getPosition)
@@ -75,7 +75,7 @@
 
 (fn update [canvas dt]
   (local {:debug outlbl :server srv } canvas)
-  (local {: mode} (server.get-state srv))
+  (local {:mode  mode} (server.mode srv))
   (set outlbl.text (view canvas.info))
   (let [(mx my) (love.mouse.getPosition)
         points (server.points srv)
