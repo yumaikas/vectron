@@ -118,23 +118,63 @@
         (s.set-status server "Didn't find any points on the clipboard")))))
 
 (fn s.base [server]
+  (var history [])
+  (var version-idx 1)
   (while true
     (var drop-status true)
+    (var do-commit false)
     (fn keep-status [] (set drop-status false))
+    (fn commit [] 
+      (let [version { :points (icollect [_ [x y] (ipairs server.points)] [x y]) }]
+        ; We are adding new things after a redo?
+        ; If I ever wanted to create side-versions of things
+        ; This would be the spot. But I do not at the moment.
+        (when (< version-idx (length history))
+          (for [i version-idx (length history)]
+            (tset history i nil)))
+
+        (tset history version-idx version)
+        (set version-idx (+ 1 version-idx))
+        (f.pp history)
+        (f.pp version-idx)))
+    (fn undo [] 
+      (f.pp version-idx)
+      (f.pp history)
+      (when (> version-idx (length history))
+        (f.pp "Backing off!")
+        ; Commit the current state before backing away from it.
+        (commit)
+        (set version-idx (- version-idx 1)))
+      (when (> version-idx 1)
+        (f.pp "EYEYEYE")
+        (set version-idx (- version-idx 1))
+        (set server.points (. history version-idx :points))))
+
+    (fn redo []
+      (when (< version-idx (length history))
+        (f.pp history)
+        (f.pp version-idx)
+        (set version-idx (+ version-idx 1))
+        (set server.points (. history version-idx :points))))
+
     
     (match (coroutine.yield)
-      (:add-point pt) (s.add-point server pt)
-      (:remove-point pt) (s.remove-point server pt)
+      (:add-point pt) (do (commit) (s.add-point server pt))
+      (:remove-point pt) (do (commit) (s.remove-point server pt))
 
       (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (:update-drag handle coord) (s.update-drag server handle coord)
-      (:end-drag handle coord) (s.end-drag server handle coord)
 
+      (:end-drag handle coord) (do (commit) (s.end-drag server handle coord))
       (:set-mode new-mode) (s.set-mode server new-mode)
-      (:copy-code) (s.copy-code server)
-      (:set-copy-mode mode) (s.set-copy-mode server mode)
 
-      (:load-code) (do (keep-status) (s.load-paste server))
+      (:undo) (undo server)
+      (:redo) (redo server)
+
+      (:set-copy-mode mode) (s.set-copy-mode server mode)
+      (:copy-code) (do (commit) (s.copy-code server))
+      (:load-code) (do (commit) (keep-status) (s.load-paste server))
+
       (:update dt) (do (keep-status) 
                      (s.update server dt))
 
@@ -150,7 +190,6 @@
 
       unmatched (error (.. "Unknown request " (view unmatched))))
     (when drop-status
-      (f.pp "dropping status")
       (s.clear-status server))
     ))
 
@@ -207,6 +246,9 @@
  :begin-drag (fn [coro pt] (call coro :begin-drag pt))
  :update-drag (fn [coro handle coord] (cast coro :update-drag handle coord))
  :end-drag (fn [coro handle coord] (cast coro :end-drag handle coord))
+
+ :undo (fn [coro] (cast coro :undo))
+ :redo (fn [coro] (cast coro :redo))
 
  :copy-code (fn [coro] (cast coro :copy-code))
  :load-code (fn [coro] (cast coro :load-code))

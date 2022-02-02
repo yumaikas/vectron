@@ -69,9 +69,9 @@
        (txt "POINTS:")
        (bbtn :add "A: Add" #(server.set-mode srv :add)) (txt "|") 
        (bbtn :move "M: Move" #(server.set-mode srv :move))  (txt "|")
+       (bbtn :del "D: Delete" #(server.set-mode srv :delete)) (txt "|")
        (bbtn :copy "I: Import" #(server.load-code srv)) (txt "|")
-       (bbtn :copy "E: Export" #(server.copy-code srv)) (txt "|")
-       (bbtn :del "D: Delete" #(server.set-mode srv :delete))
+       (bbtn :copy "E: Export" #(server.copy-code srv))
        ]))
 
   (fn switch-export [] 
@@ -84,6 +84,8 @@
     (ui-stack 
       :horizontal [0 0]
       [(txt "   APP:") 
+       (bbtn :undo "U: Undo" #(server.undo srv)) (txt "|")
+       (bbtn :redo "R: Redo" #(server.redo srv)) (txt "|")
        (bbtn :code-switch (export-switch-text :fennel) switch-export) (txt "|")  
        (bbtn :quit "Q: Quit" #(love.event.quit 0)) ]))
 
