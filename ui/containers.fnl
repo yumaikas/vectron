@@ -55,7 +55,8 @@
          (child.code.update child dt)))
 
 (fn can-stack? [el] el.code)
-(lambda stack [dir pos children] 
+(lambda stack [dir pos ...] 
+  (local children [...])
   (or (f.all? children can-stack?) 
       (error (.. "Child in stack doesn't know how to draw itself!"
                  (view (f.find children #(not (can-stack? $)))))))
