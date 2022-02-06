@@ -16,6 +16,10 @@
   (pp "ADD")
   (table.insert server.points pt))
 
+(fn s.insert-point [server after pt]
+  (let [idx (f.index-of server.points after) ]
+    (table.insert server.points idx pt)))
+
 (fn s.remove-point [server pt]
   (pp "REMOVE")
   (let [idx (f.index-of server.points pt)]
@@ -106,6 +110,32 @@
 (fn s.clear-status [server] 
   (set server.status-line nil))
 
+(fn s.begin-slide [server at]
+  (set server.slide.start at)
+  (set server.slide.current at))
+
+(fn s.update-slide [server to]
+  (set server.slide.current to))
+
+(fn s.end-slide [server at]
+  (let [pt-adjust (v.sub server.slide.current
+                         server.slide.start)]
+    (set server.points (f.map.i server.points #(v.add $ pt-adjust)))
+    (set server.slide.start [0 0])
+    (set server.slide.current [0 0])))
+
+(fn s.points [server] 
+  (if
+    (= server.mode :slide) 
+    (let [pt-adjust (v.sub server.slide.current server.slide.start)]
+      (f.map.i server.points #(v.add $ pt-adjust)))
+    server.points))
+
+(fn s.slide-offset [server]
+  (v.sub 
+    server.slide.current
+    server.slide.start))
+
 (fn s.load-paste [server]
   (let [copy-mode server.copy-mode
         input (love.system.getClipboardText)
@@ -161,6 +191,13 @@
     (match (coroutine.yield)
       (:add-point pt) (do (commit) (s.add-point server pt))
       (:remove-point pt) (do (commit) (s.remove-point server pt))
+      (:insert-point after pt) (do (commit) (s.insert-point server after pt))
+
+      ; TODO: Update this code to use operation handles akin to drags 
+      (:begin-slide at) (s.begin-slide server at)
+      (:update-slide to) (s.update-slide server to)
+      (:end-slide at) (s.end-slide server at)
+      (:slide-offset) (coroutine.yield (s.slide-offset server))
 
       (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (:update-drag handle coord) (s.update-drag server handle coord)
@@ -184,7 +221,7 @@
       (:state) (do (keep-status) 
                  (coroutine.yield server))
       (:points) (do (keep-status) 
-                  (coroutine.yield server.points))
+                  (coroutine.yield (s.points server)))
       (:mode) (do (keep-status) 
                 (coroutine.yield {:mode server.mode :copy-mode server.copy-mode }))
 
@@ -215,6 +252,7 @@
    :mode :add
    :copy-mode :fennel
    :points []
+   :slide {:start [0 0] :current [0 0]}
    :handles {}
    })
 
@@ -242,10 +280,17 @@
            (coroutine.resume coro :start inputs))
 
  :add-point (fn [coro pt] (cast coro :add-point pt))
+ :insert-point (fn [coro after pt] (cast coro :insert-point after pt))
  :remove-point (fn [coro pt] (cast coro :remove-point pt))
+
  :begin-drag (fn [coro pt] (call coro :begin-drag pt))
  :update-drag (fn [coro handle coord] (cast coro :update-drag handle coord))
  :end-drag (fn [coro handle coord] (cast coro :end-drag handle coord))
+
+ :slide-offset (fn [coro] (call coro :slide-offset))
+ :begin-slide (fn [coro at] (cast coro :begin-slide at))
+ :update-slide (fn [coro to] (cast coro :update-slide to))
+ :end-slide (fn [coro at] (cast coro :end-slide at))
 
  :undo (fn [coro] (cast coro :undo))
  :redo (fn [coro] (cast coro :redo))

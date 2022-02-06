@@ -43,29 +43,48 @@
             :dims [w h]})
     ))
 
+(fn hl-line [points mpos] 
+  (var min-dist 4.5e15)
+  (var ret nil)
+  (for [i 1 (- (length points) 1)]
+    (let [pt (. points i)
+          next-pt (. points (+ 1 i))
+          dist (c.dist-pt-line pt next-pt mpos) ]
+      (when (< dist min-dist)
+        (set min-dist dist)
+        (set ret [pt next-pt]))))
+  ret)
+
 (fn highlighted-point [points mpos]
   (f.find points #(< (v.dist mpos $) 10)))
 
 (fn draw [canvas]
   (let 
     [points (server.points canvas.server)
+     offset (server.slide-offset canvas.server)
+     {:mode mode} (server.mode canvas.server)
      pt-count (length points)
      {:pos [x y] :dims [w h]} canvas 
      (mx my) (love.mouse.getPosition)
      mpt [mx my] ]
-    (if 
 
+    (if 
       (> pt-count 1)
       (do
         ; Lay out the line
         (gfx.setColor [0 1 0])
         (gfx.line (v.flatten points))
-        ; Draw the hover point, w/e it is
-        (let [hpt (highlighted-point points [mx my])]
-          (when hpt
+        (match mode
+          :insert 
+          (let [[[x1 y1] [x2 y2]] (hl-line points [mx my])]
             (gfx.setColor [0.2 0.2 1])
-            (gfx.circle :line (. hpt 1) (. hpt 2) 5))))
-
+            (gfx.line x1 y1 mx my x2 y2))
+          _ 
+          (let [hpt (highlighted-point points [mx my])]
+            ; Draw the hover point, w/e it is
+            (when hpt
+              (gfx.setColor [0.2 0.2 1])
+              (gfx.circle :line (. hpt 1) (. hpt 2) 5)))))
       (= pt-count 1)
       (let [[x y] (. points 1)]
         (gfx.circle :line x y 4)))
@@ -89,6 +108,9 @@
       (match mode 
         :add
         (server.add-point srv [mx my])
+        :insert
+        (let [[_ after] (hl-line points [mx my])]
+          (server.insert-point srv after [mx my]))
         :delete
         (let [hlpt (highlighted-point points [mx my])]
           (when hlpt
@@ -97,15 +119,26 @@
         (let [hlpt (highlighted-point points [mx my])]
           (when hlpt
               (set canvas.drag-handle (server.begin-drag srv hlpt))))
+        :slide 
+        (do
+          (set canvas.slide true)
+          (server.begin-slide srv [mx my]))
       ))
     (when just-released? 
       (match mode
+        :slide 
+        (when canvas.slide 
+          (set canvas.slide false)
+          (server.end-slide srv [mx my]))
         :move
         (when canvas.drag-handle
           (server.end-drag srv canvas.drag-handle [mx my])
           (set canvas.drag-handle nil))))
     (when mouse-moved?
       (match mode
+        :slide
+        (when canvas.slide
+          (server.update-slide srv [mx my]))
         :move
         (when canvas.drag-handle
           (server.update-drag srv canvas.drag-handle [mx my]))))))

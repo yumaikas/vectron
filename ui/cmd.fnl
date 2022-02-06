@@ -14,8 +14,20 @@
   (match mode
     :add :adding
     :delete :deleting
+    :insert :inserting
     :move :moving
+    :slide :sliding
     _ (error (.. "Unrecognized mode passed to gerundise: " mode))))
+
+(fn object-of-mode [mode]
+  (match mode
+    :add :points
+    :delete :points
+    :insert :points
+    :move :points
+    :slide :shape
+
+    _ (error (.. "Unrecognized mode passed to object-of-mode: " mode))))
 
 (fn export-switch-text [copy-mode]
   (match copy-mode
@@ -27,20 +39,9 @@
     :lua    " To Fennel" 
     :fennel " To Lua   "))
 
-(var times 10)
 (fn update [me dt] 
   (local {:element-map elements
           :server srv } me)
-  (when (> times 0)
-    (let [{:mode-lbl mode
-           :pts-lbl points
-           :app-lbl app
-           } elements]
-      (print "********")
-      (set times (- times 1))
-      (f.pp mode)
-      (f.pp points)
-      (f.pp app)))
   (let [{:mode mode-el :code-switch switch-btn} elements
         status-line (server.status-line srv)
         {: mode : copy-mode } (server.mode srv) ]
@@ -49,7 +50,7 @@
       (mode-el:set-text status-line)
       (mode-el:set-text 
         (.. 
-          (: (gerundize mode) :gsub "^%l" string.upper) " points. "
+          (: (gerundize mode) :gsub "^%l" string.upper) " " (object-of-mode mode) ". "
           "Import/Export to " (copy-mode:gsub "^%l" string.upper)))))
 
   ; Forward events and such
@@ -86,11 +87,19 @@
     (ui-stack 
       :horizontal [0 0]
        (btxt :pts-lbl "POINTS:")
-       (xbbtn :add "A:" " Add " #(server.set-mode srv :add)) 
-       (xbbtn :move "M:" " Move" #(server.set-mode srv :move))
-       (xbbtn :del "D:" " Delete   " #(server.set-mode srv :delete)) 
+       (xbbtn :add "A:" " Add   " #(server.set-mode srv :add)) 
+       (xbbtn :move "M:" " Move  " #(server.set-mode srv :move))
+       (xbbtn :move "I:" " Insert   " #(server.set-mode srv :insert))
+       (xbbtn :del "D:" " Delete" #(server.set-mode srv :delete)) 
+       ))
+
+  (local row2
+    (ui-stack
+      :horizontal [0 0]
+      (btxt :shape-lbl " SHAPE:")
        (xbbtn :paste "I:" " Import" #(server.load-code srv))
        (xbbtn :copy "E:" " Export" #(server.copy-code srv))
+       (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
        ))
 
   (fn switch-export [] 
@@ -99,26 +108,20 @@
         :fennel (server.set-copy-mode srv :lua)
         :lua (server.set-copy-mode srv :fennel))))
 
-  (local row2
+  (local row3
     (ui-stack 
       :horizontal [0 0]
       (btxt :app-lbl "   APP:") 
-       (xbbtn :undo "U:" " Undo" #(server.undo srv))
-       (xbbtn :redo "R:" " Redo" #(server.redo srv)) 
-       (xbbtn :code-switch "L:" (start-export-text :fennel) switch-export)
-       (xbbtn :quit "Q:" " Quit" #(love.event.quit 0))))
-
-  ; RESUME
-  (local row3
-    (ui-stack
-      :horizontal [0 0] ))
-
+      (xbbtn :undo "U:" " Undo  " #(server.undo srv))
+      (xbbtn :redo "R:" " Redo  " #(server.redo srv)) 
+      (xbbtn :code-switch "L:" (start-export-text :fennel) switch-export)
+      (xbbtn :quit "Q:" " Quit" #(love.event.quit 0))))
 
   (fn layout [me] 
     (me.rows.code.layout me.rows))
   (let 
     [
-     my-stack (ui-stack :vertical pos row0 row1 row2)
+     my-stack (ui-stack :vertical pos row0 row1 row2 row3)
      me 
      {
       :rows my-stack

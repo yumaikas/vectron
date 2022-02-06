@@ -37,4 +37,4 @@
         ]
     (math.sqrt (+ (* dx dx) (* dy dy)))))
 
-{: pt-in-rect?}
+{: pt-in-rect? : dist-pt-line }
