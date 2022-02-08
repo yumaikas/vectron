@@ -13,23 +13,20 @@
   (set server.mode new-mode))
 
 (fn s.add-point [server pt]
-  (pp "ADD")
-  (table.insert server.points pt))
+  (table.insert server.current-shape.points pt))
 
 (fn s.insert-point [server after pt]
-  (let [idx (f.index-of server.points after) ]
-    (table.insert server.points idx pt)))
+  (let [idx (f.index-of server.current-shape.points after) ]
+    (table.insert server.current-shape.points idx pt)))
 
 (fn s.remove-point [server pt]
-  (pp "REMOVE")
-  (let [idx (f.index-of server.points pt)]
-    (pp "FOUND")
+  (let [idx (f.index-of server.current-shape.points pt)]
     ; Do not delete points that are currently being used by a running operation
     (when (and idx (not (f.any? (f.values server.handles) #(= pt $.point))))
-      (table.remove server.points idx))))
+      (table.remove server.current-shape.points idx))))
 
 (fn s.begin-drag [server pt] 
-  (let [point-idx (f.index-of server.points pt)
+  (let [point-idx (f.index-of server.current-shape.points pt)
         handle (f.uuid)]
     (if point-idx
       (do
@@ -78,7 +75,6 @@
   (let [points []]
     (each [x y (string.gfind text "(%d+)%s+(%d+)")]
       (table.insert points [x y]))
-    (f.pp points)
     (if (> (length points) 0)
       (values :ok points)
       (values :error "Found no points"))))
@@ -94,8 +90,8 @@
 (fn s.copy-code [server] 
   (let [copy-mode server.copy-mode]
     (match copy-mode
-      :lua (copy (luapts (v.flatten server.points)))
-      :fennel (copy (fennelpts (v.flatten server.points)))
+      :lua (copy (luapts (v.flatten server.current-shape.points)))
+      :fennel (copy (fennelpts (v.flatten server.current-shape.points)))
       _ (error (.. "Unknown copy-mode" copy-mode) ))))
 
 (fn pts-loader-for-mode [copy-mode]
@@ -120,16 +116,37 @@
 (fn s.end-slide [server at]
   (let [pt-adjust (v.sub server.slide.current
                          server.slide.start)]
-    (set server.points (f.map.i server.points #(v.add $ pt-adjust)))
+    (set server.current-shape.points (f.map.i server.current-shape.points #(v.add $ pt-adjust)))
     (set server.slide.start [0 0])
     (set server.slide.current [0 0])))
 
 (fn s.points [server] 
-  (if
-    (= server.mode :slide) 
-    (let [pt-adjust (v.sub server.slide.current server.slide.start)]
-      (f.map.i server.points #(v.add $ pt-adjust)))
-    server.points))
+  (let [points server.current-shape.points]
+    (if
+      (= server.mode :slide) 
+      (let [pt-adjust (v.sub server.slide.current server.slide.start)]
+        (f.map.i points #(v.add $ pt-adjust)))
+      points)))
+
+(fn s.current-shape [server] server.current-shape)
+(fn s.shapes [server] server.shapes)
+
+(fn s.new-shape [server] 
+  (table.insert server.shapes 
+                { :points [(server.canvas:do-place 0.5 0.5)]
+                 :color [0 1 0]
+                 }))
+
+(fn s.move-shape [server shape after]
+  (let [w/o-shape (f.filter.i server.shapes #(not= shape $)) 
+        insert-idx (+ 1 (or (f.index-of w/o-shape after) 0)) ]
+    (table.insert w/o-shape insert-idx shape)
+    (set server.shapes w/o-shape)))
+
+(fn s.pick-shape [server shape] 
+  (if (f.index-of server.shapes shape)
+    (set server.current-shape shape)
+    (error "Tried to pick shape not in the server!")))
 
 (fn s.slide-offset [server]
   (v.sub 
@@ -141,9 +158,8 @@
         input (love.system.getClipboardText)
         loader (pts-loader-for-mode copy-mode)
         (ok pts) (loader input) ]
-    (f.pp input)
     (if (= ok :ok)
-      (set server.points pts)
+      (set server.current-shape.points pts)
       (do (print pts)
         (s.set-status server "Didn't find any points on the clipboard")))))
 
@@ -155,7 +171,7 @@
     (var do-commit false)
     (fn keep-status [] (set drop-status false))
     (fn commit [] 
-      (let [version { :points (icollect [_ [x y] (ipairs server.points)] [x y]) }]
+      (let [version { :points (icollect [_ [x y] (ipairs server.current-shape.points)] [x y]) }]
         ; We are adding new things after a redo?
         ; If I ever wanted to create side-versions of things
         ; This would be the spot. But I do not at the moment.
@@ -165,27 +181,20 @@
 
         (tset history version-idx version)
         (set version-idx (+ 1 version-idx))
-        (f.pp history)
-        (f.pp version-idx)))
+        ))
     (fn undo [] 
-      (f.pp version-idx)
-      (f.pp history)
       (when (> version-idx (length history))
-        (f.pp "Backing off!")
         ; Commit the current state before backing away from it.
         (commit)
         (set version-idx (- version-idx 1)))
       (when (> version-idx 1)
-        (f.pp "EYEYEYE")
         (set version-idx (- version-idx 1))
-        (set server.points (. history version-idx :points))))
+        (set server.current-shape.points (. history version-idx :points))))
 
     (fn redo []
       (when (< version-idx (length history))
-        (f.pp history)
-        (f.pp version-idx)
         (set version-idx (+ version-idx 1))
-        (set server.points (. history version-idx :points))))
+        (set server.current-shape.points (. history version-idx :points))))
 
     
     (match (coroutine.yield)
@@ -198,6 +207,10 @@
       (:update-slide to) (s.update-slide server to)
       (:end-slide at) (s.end-slide server at)
       (:slide-offset) (coroutine.yield (s.slide-offset server))
+
+      (:shapes) (coroutine.yield (s.shapes server))
+      (:current-shape) (coroutine.yield (s.current-shape server))
+      (:pick-shape shape) (s.pick-shape server shape)
 
       (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (:update-drag handle coord) (s.update-drag server handle coord)
@@ -231,7 +244,7 @@
     ))
 
 (fn s.init-canvas [server canvas]
-  (table.insert server.points (canvas:do-place 0.5 0.5))
+  (table.insert server.current-shape.points (canvas:do-place 0.5 0.5))
   (s.base server))
 
 (fn pack [...] 
@@ -240,21 +253,22 @@
     t))
 
 (fn s.serve [server] 
-  (pp "START")
   (let [vals (pack (coroutine.yield))]
     (match vals
-      [:start {: canvas }] (s.init-canvas server canvas)
+      [:start {: canvas }]  (s.init-canvas server canvas)
       _ (error (.. "Given " (view vals) " instead of expected start inputs!")))))
 
 
 (local server-start-state
+  (let [starting-shape {:points [] :color [0 1 0]} ]
   {
    :mode :add
    :copy-mode :fennel
-   :points []
+   :current-shape starting-shape
+   :shapes [starting-shape]
    :slide {:start [0 0] :current [0 0]}
    :handles {}
-   })
+   }))
 
 (fn make [] 
   (let [srv (coroutine.create s.serve)]

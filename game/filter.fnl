@@ -1,4 +1,4 @@
-; Remove entries from the table that don't satisfy the predicate
+; Remove entries from the table that do not satisfy the predicate
 (fn i! [tbl pred] 
   (for [idx (length tbl) 1 -1]
     (when (not (pred (. tbl idx)))

@@ -107,11 +107,16 @@
  : table?
  : with-debug
  : uuid
- :map 
- {
-  :i (fn [tbl f] (icollect [_ el (ipairs tbl)] (f el)))
-  :idx (fn [tbl f] (icollect [idx el (ipairs tbl)] (f idx el)))
-  :kv (fn [tbl f] (collect [k val (pairs tbl)] (f k val)))
-  }
+ :map { :i (fn [tbl f] (icollect [_ el (ipairs tbl)] (f el)))
+       :idx (fn [tbl f] (icollect [idx el (ipairs tbl)] (f idx el)))
+       :kv (fn [tbl f] (collect [k val (pairs tbl)] (f k val))) }
  :in-debug? (fn [] in-debug?)
+ :filter { :i (fn [tbl pred] (icollect [_ el (ipairs tbl)] (when (pred el) el)))
+          :idx (fn [tbl pred] (icollect [idx el (ipairs tbl)] (when (pred idx el) el)))
+          :kv (fn [tbl pred] (collect [key val (pairs tbl)] (when (pred key val) (values key val))))
+          :i!  (fn [tbl pred] 
+                 (for [idx (length tbl) 1 -1]
+                   (when (not (pred (. tbl idx)))
+                     (table.remove tbl idx)
+                     ))) }
 }
