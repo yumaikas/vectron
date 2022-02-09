@@ -3,6 +3,7 @@
 (local f (require :f))
 (local v (require :v))
 (local command-map (require :ui.cmd))
+(local shapelist (require :ui.shapelist))
 (import-macros {: each-in : check} :m)
 (local menu (require :ui.menu))
 (local canvas (require :ui.canvas))
@@ -51,12 +52,13 @@
      blot
      canvas-dbg
      (command-map.make srv [40 600])
+     (shapelist.make srv [600 30] assets.font)
      ])
   (ui.add-layer [ (menu.fps [10 10]) ])
 
   (let [(maj min rev codename) (love.getVersion)]
     (f.pp [maj min rev codename]))
-  (do))
+  )
 
 (fn love.draw []
   (gfx.setFont assets.font)

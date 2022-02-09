@@ -211,6 +211,7 @@
       (:shapes) (coroutine.yield (s.shapes server))
       (:current-shape) (coroutine.yield (s.current-shape server))
       (:pick-shape shape) (s.pick-shape server shape)
+      (:move-shape shape after) (s.move-shape server shape after)
 
       (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (:update-drag handle coord) (s.update-drag server handle coord)
@@ -305,6 +306,11 @@
  :begin-slide (fn [coro at] (cast coro :begin-slide at))
  :update-slide (fn [coro to] (cast coro :update-slide to))
  :end-slide (fn [coro at] (cast coro :end-slide at))
+
+ :shapes (fn [coro] (call coro :shapes))
+ :current-shape (fn [coro] (call coro :current-shape))
+ :pick-shape (fn [coro shape] (cast coro :pick-shape shape))
+ :move-shape (fn [coro shape after] (cast coro :move-shape shape after))
 
  :undo (fn [coro] (cast coro :undo))
  :redo (fn [coro] (cast coro :redo))

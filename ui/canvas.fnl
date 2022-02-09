@@ -61,12 +61,18 @@
 (fn draw [canvas]
   (let 
     [points (server.points canvas.server)
+     curr-shape (server.current-shape canvas.server) 
      offset (server.slide-offset canvas.server)
+     bg-shapes (f.filter.i (server.shapes canvas.server) #(not= $ curr-shape))
      {:mode mode} (server.mode canvas.server)
      pt-count (length points)
      {:pos [x y] :dims [w h]} canvas 
      (mx my) (love.mouse.getPosition)
      mpt [mx my] ]
+
+    (each-in bgs bg-shapes 
+      (gfx.setColor [0.5 0.5 0.5])
+      (gfx.line (v.flatten bgs.points)))
 
     (if 
       (> pt-count 1)

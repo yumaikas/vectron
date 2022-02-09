@@ -20,6 +20,18 @@
                 (each-in n d
                   (table.insert nums n))
                 nums)))
+
+;; This is an attempt at a preformance improvment
+(fn flatten-into [pts dest]
+  (var destidx 1)
+  (for [i 1 (length pts)]
+    (tset dest destidx (. pts i 1))
+    (tset dest (+ 1 destidx) (. pts i 2))
+    (set destidx (+ 2 destidx)))
+  ; Clear out unused spaces
+  (for [i destidx (length dest)]
+    (tset dest i nil)))
+
 (fn dist [v1 v2]
   (check v1 "v1 nil in dist!")
   (check v2 "v2 nil in dist!")
@@ -83,5 +95,5 @@
 
 
 
-{ : add : sub : flatten : dist : dot : angle-of : unit : project-onto }
+{ : add : sub : flatten : flatten-into : dist : dot : angle-of : unit : project-onto }
 

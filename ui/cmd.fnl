@@ -100,6 +100,8 @@
        (xbbtn :paste "I:" " Import" #(server.load-code srv))
        (xbbtn :copy "E:" " Export" #(server.copy-code srv))
        (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
+       ; RESUME
+       ; (xbbtn :add-shape "W:" " New " #(server.
        ))
 
   (fn switch-export [] 
