@@ -71,8 +71,17 @@
      mpt [mx my] ]
 
     (each-in bgs bg-shapes 
-      (gfx.setColor [0.5 0.5 0.5])
-      (gfx.line (v.flatten bgs.points)))
+      (let [pt-count (length bgs.points)]
+        (gfx.setColor [0.5 0.5 0.5])
+        (if 
+          (> pt-count 1)
+          (gfx.line (v.flatten bgs.points))
+          (= pt-count 1)
+          (gfx.circle 
+            :line 
+            (. bgs.points 1 1) 
+            (. bgs.points 1 2) 
+            4))))
 
     (if 
       (> pt-count 1)

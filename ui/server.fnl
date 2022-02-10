@@ -132,10 +132,13 @@
 (fn s.shapes [server] server.shapes)
 
 (fn s.new-shape [server] 
-  (table.insert server.shapes 
-                { :points [(server.canvas:do-place 0.5 0.5)]
-                 :color [0 1 0]
-                 }))
+  (f.pp "NEW")
+  (let [[x y] server.proto-point]
+    (table.insert 
+      server.shapes 
+      { :points [[x y]]
+       :color [0 1 0] }))
+  (f.pp "SHAPE"))
 
 (fn s.move-shape [server shape after]
   (let [w/o-shape (f.filter.i server.shapes #(not= shape $)) 
@@ -209,6 +212,7 @@
       (:slide-offset) (coroutine.yield (s.slide-offset server))
 
       (:shapes) (coroutine.yield (s.shapes server))
+      (:new-shape) (s.new-shape server)
       (:current-shape) (coroutine.yield (s.current-shape server))
       (:pick-shape shape) (s.pick-shape server shape)
       (:move-shape shape after) (s.move-shape server shape after)
@@ -246,6 +250,7 @@
 
 (fn s.init-canvas [server canvas]
   (table.insert server.current-shape.points (canvas:do-place 0.5 0.5))
+  (set server.proto-point (canvas:do-place 0.5 0.5))
   (s.base server))
 
 (fn pack [...] 
@@ -311,6 +316,7 @@
  :current-shape (fn [coro] (call coro :current-shape))
  :pick-shape (fn [coro shape] (cast coro :pick-shape shape))
  :move-shape (fn [coro shape after] (cast coro :move-shape shape after))
+ :new-shape (fn [coro] (cast coro :new-shape))
 
  :undo (fn [coro] (cast coro :undo))
  :redo (fn [coro] (cast coro :redo))

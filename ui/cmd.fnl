@@ -87,7 +87,7 @@
     (ui-stack 
       :horizontal [0 0]
        (btxt :pts-lbl "POINTS:")
-       (xbbtn :add "A:" " Add   " #(server.set-mode srv :add)) 
+       (xbbtn :add "A:" " Add " #(server.set-mode srv :add)) 
        (xbbtn :move "M:" " Move  " #(server.set-mode srv :move))
        (xbbtn :move "I:" " Insert   " #(server.set-mode srv :insert))
        (xbbtn :del "D:" " Delete" #(server.set-mode srv :delete)) 
@@ -97,11 +97,10 @@
     (ui-stack
       :horizontal [0 0]
       (btxt :shape-lbl " SHAPE:")
+       (xbbtn :paste "N:" " New " #(server.new-shape srv))
        (xbbtn :paste "I:" " Import" #(server.load-code srv))
-       (xbbtn :copy "E:" " Export" #(server.copy-code srv))
+       (xbbtn :copy "E:" " Export   " #(server.copy-code srv))
        (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
-       ; RESUME
-       ; (xbbtn :add-shape "W:" " New " #(server.
        ))
 
   (fn switch-export [] 
@@ -114,7 +113,7 @@
     (ui-stack 
       :horizontal [0 0]
       (btxt :app-lbl "   APP:") 
-      (xbbtn :undo "U:" " Undo  " #(server.undo srv))
+      (xbbtn :undo "U:" " Undo" #(server.undo srv))
       (xbbtn :redo "R:" " Redo  " #(server.redo srv)) 
       (xbbtn :code-switch "L:" (start-export-text :fennel) switch-export)
       (xbbtn :quit "Q:" " Quit" #(love.event.quit 0))))
