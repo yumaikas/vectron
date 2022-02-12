@@ -309,8 +309,7 @@
 
 ; Aping Erlang GenServers here
 (fn call [coro ...] 
-  
-  (print "CAST" (view ...))
+  ; (print "CAST" (view ...))
   (let [(ok msg) (coroutine.resume coro ...)]
     ; Ack
     (if ok
@@ -318,7 +317,7 @@
       (error msg))))
 
 (fn cast [coro ...] 
-  (print "CALL" (view ...))
+  ; (print "CALL" (view ...))
   (assert (coroutine.resume coro ...)))
 
 {: make 

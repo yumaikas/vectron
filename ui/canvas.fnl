@@ -102,6 +102,7 @@
               (gfx.circle :line (. hpt 1) (. hpt 2) 5)))))
       (= pt-count 1)
       (let [[x y] (. points 1)]
+        (gfx.setColor [1 1 1])
         (gfx.circle :line x y 4)))
 
     (gfx.setColor [1 1 1])
