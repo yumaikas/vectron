@@ -120,7 +120,7 @@
   (set server.slide.current to))
 
 (fn s.end-slide [server at]
-  (let [current-shape (s.currrent-shape server)
+  (let [current-shape (s.current-shape server)
         pt-adjust (v.sub server.slide.current
                          server.slide.start)]
     (set current-shape.points (f.map.i current-shape.points #(v.add $ pt-adjust)))
@@ -181,11 +181,18 @@
   { :color [r g b]
    :points (icollect [_ [x y] (ipairs points)] [x y])}))
 
-; { :points (icollect [_ [x y] (ipairs server.current-shape.points)] [x y]) }
+(fn copy-each-shape [shapes] 
+   (icollect [_ shape (ipairs shapes)] (copy-shape shape)))
+
 (fn version-of [server]
-  {}
-  )
-  
+  {
+   :current-shape server.current-shape
+   :shapes (copy-each-shape server.shapes)
+   })
+
+(fn apply-version [server version] 
+  (set server.current-shape version.current-shape)
+  (set server.shapes (copy-each-shape version.shapes)))
 
 (fn s.base [server]
   (var history [])
@@ -205,7 +212,8 @@
 
         (tset history version-idx version)
         (set version-idx (+ 1 version-idx))
-        ))
+        )
+      (f.pp history))
     (fn undo [] 
       (when (> version-idx (length history))
         ; Commit the current state before backing away from it.
@@ -213,13 +221,12 @@
         (set version-idx (- version-idx 1)))
       (when (> version-idx 1)
         (set version-idx (- version-idx 1))
-        (let [current-shape (s.current-shape server)]
-          (set current-shape.points (. history version-idx :points)))))
+        (apply-version server (. history version-idx))))
 
     (fn redo []
       (when (< version-idx (length history))
         (set version-idx (+ version-idx 1))
-        (set server.current-shape.points (. history version-idx :points))))
+        (apply-version server (. history version-idx))))
 
     
     (match (coroutine.yield)

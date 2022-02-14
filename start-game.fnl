@@ -7,6 +7,7 @@
 (import-macros {: each-in : check} :m)
 (local menu (require :ui.menu))
 (local canvas (require :ui.canvas))
+(local color-picker (require :ui.color-picker))
 (local {:stack ui-stack } (require :ui.containers))
 (local ui (require :ui))
 (local server (require :ui.server))
@@ -52,7 +53,8 @@
      blot
      canvas-dbg
      (command-map.make srv [40 600])
-     (shapelist.make srv [600 30] assets.font)
+     (shapelist.make srv [600 30] [200 300] assets.font)
+     (color-picker.make srv [600 340] [200 240])
      ])
   (ui.add-layer [ (menu.fps [10 10]) ])
 

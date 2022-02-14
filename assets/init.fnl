@@ -4,4 +4,8 @@
               "ABCDEFGHIJKLMNOPQRSTUVWXYZ0" 
               "123456789.,!?-+/():;%&`'*#=[]\"")]
   { :font (love.graphics.newFont "assets/Inconsolata.ttf" 20)
-   :bitfont (love.graphics.newImageFont "assets/font.png" chars) })
+   :bitfont (love.graphics.newImageFont "assets/font.png" chars) 
+   :frame-color [1 1 1]
+   })
+
+

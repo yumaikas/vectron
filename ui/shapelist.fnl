@@ -63,6 +63,11 @@
             (do
               (gfx.setColor [0.3 0.3 0])
               (gfx.rectangle :fill x yval raw-width h)))
+          (if (= selected shape)
+            (do
+              (gfx.setColor [0 0.3 0.3])
+              (gfx.rectangle :fill x yval raw-width h)))
+
           (gfx.setColor [1 1 1])
           (gfx.rectangle :fill x yval (- (font:getWidth "0:") 2) h)
           (gfx.print fmt x yval)
@@ -72,13 +77,13 @@
     (gfx.rectangle :line x y w h)))
 
 
-(fn make [server pos font] 
+(fn make [server pos dims font] 
   (ui.annex 
     {: pos 
      : server
      : font
      :children {}
-     :dims [200 300]
+     : dims
      :code  {: update : draw} }))
 
 
