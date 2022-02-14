@@ -92,6 +92,9 @@
       [true & rest] (unpack rest)
       [false & rest] (error (unpack rest)))))
 
+(fn lerp [a b t] (+ (* a (- 1 t)) (* b t)))
+(fn unlerp [a b y] (/ (- y a) (- b a)))
+(fn remap [x a1 a2 b1 b2] (lerp (unlerp x a1 a2) b1 b2))
 {
  : pp
  : find
@@ -104,6 +107,9 @@
  : number?
  :values (fn [tbl] (icollect [_ v (pairs tbl)] v))
  :keys (fn [tbl] (icollect [k _ (pairs tbl)] k))
+ : lerp
+ : unlerp
+ : remap
  : table?
  : with-debug
  : uuid

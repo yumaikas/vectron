@@ -42,6 +42,12 @@
      (math.pow (- x2 x1) 2)
      (math.pow (- y2 y1) 2)))))
 
+(fn distxyp [x1 y1 x2 y2]
+  (math.sqrt 
+    (+
+     (math.pow (- x2 x1) 2)
+     (math.pow (- y2 y1) 2))))
+
 (fn mag [a]
   (let [[x y] a]
   (math.sqrt (+ (* x x) (* y y)))))
@@ -95,5 +101,5 @@
 
 
 
-{ : add : sub : flatten : flatten-into : dist : dot : angle-of : unit : project-onto }
+{ : add : sub : flatten : flatten-into : dist : distxyp : dot : angle-of : unit : project-onto }
 
