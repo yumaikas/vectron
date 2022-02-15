@@ -92,8 +92,14 @@
       [true & rest] (unpack rest)
       [false & rest] (error (unpack rest)))))
 
+
+(fn clamp [bottom top x] (math.max bottom (math.min x top)))
 (fn lerp [a b t] (+ (* a (- 1 t)) (* b t)))
-(fn unlerp [a b y] (/ (- y a) (- b a)))
+(fn unlerp [a b y] 
+  (let [ytrue (clamp a b y)] 
+    (pp [a b ytrue])
+    (/ (- ytrue a) (- b a)))
+  )
 (fn remap [x a1 a2 b1 b2] (lerp (unlerp x a1 a2) b1 b2))
 {
  : pp

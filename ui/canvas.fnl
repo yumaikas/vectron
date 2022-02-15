@@ -65,14 +65,14 @@
      offset (server.slide-offset canvas.server)
      bg-shapes (f.filter.i (server.shapes canvas.server) #(not= $ curr-shape))
      {:mode mode} (server.mode canvas.server)
-     pt-count (length points)
+     pt-count (length curr-shape.points)
      {:pos [x y] :dims [w h]} canvas 
      (mx my) (love.mouse.getPosition)
      mpt [mx my] ]
 
     (each-in bgs bg-shapes 
       (let [pt-count (length bgs.points)]
-        (gfx.setColor [0.5 0.5 0.5])
+        (gfx.setColor bgs.color)
         (if 
           (> pt-count 1)
           (gfx.line (v.flatten bgs.points))
@@ -87,7 +87,7 @@
       (> pt-count 1)
       (do
         ; Lay out the line
-        (gfx.setColor [0 1 0])
+        (gfx.setColor curr-shape.color)
         (gfx.line (v.flatten points))
         (match mode
           :insert 

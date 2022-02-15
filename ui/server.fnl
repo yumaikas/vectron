@@ -152,6 +152,11 @@
     (table.insert w/o-shape insert-idx shape)
     (set server.shapes w/o-shape)))
 
+(fn s.set-shape-color [server shape color]
+  (if (f.index-of server.shapes shape)
+    (set shape.color color)
+    (error (.. "Tried to set color for shape not in server!"))))
+
 (fn s.pick-shape [server shape] 
   (let [pick-idx (f.index-of server.shapes shape)]
     (if pick-idx
@@ -213,7 +218,8 @@
         (tset history version-idx version)
         (set version-idx (+ 1 version-idx))
         )
-      (f.pp history))
+      ;(f.pp history)
+      )
     (fn undo [] 
       (when (> version-idx (length history))
         ; Commit the current state before backing away from it.
@@ -245,6 +251,10 @@
       (:current-shape) (coroutine.yield (s.current-shape server))
       (:pick-shape shape) (s.pick-shape server shape)
       (:move-shape shape after) (do (commit) (s.move-shape server shape after))
+
+      ; TODO: Keep a temp color copy on hand?
+      (:set-shape-color shape color) (do (s.set-shape-color server shape color))
+      (:commit-shape-color shape color) (do (commit) (s.set-shape-color server shape color))
 
       (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (:update-drag handle coord) (s.update-drag server handle coord)
@@ -349,6 +359,9 @@
  :pick-shape (fn [coro shape] (cast coro :pick-shape shape))
  :move-shape (fn [coro shape after] (cast coro :move-shape shape after))
  :new-shape (fn [coro] (cast coro :new-shape))
+
+ :commit-shape-color (fn [coro shape color] (cast coro :commit-shape-color shape color))
+ :set-shape-color (fn [coro shape color] (cast coro :set-shape-color shape color))
 
  :undo (fn [coro] (cast coro :undo))
  :redo (fn [coro] (cast coro :redo))
