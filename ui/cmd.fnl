@@ -31,7 +31,7 @@
 
 (fn export-switch-text [copy-mode]
   (match copy-mode
-    :lua    [ [0 0 0] "F:" [1 1 1] " To Fennel"]
+    :lua    [ [0 0 0] "L:" [1 1 1] " To Fennel"]
     :fennel [ [0 0 0]  "L:" [1 1 1] " To Lua   "]))
 
 (fn start-export-text [copy-mode] 
@@ -41,7 +41,9 @@
 
 (fn update [me dt] 
   (local {:element-map elements
-          :server srv } me)
+          :server srv 
+          : key->cmd
+          } me)
   (let [{:mode mode-el :code-switch switch-btn} elements
         status-line (server.status-line srv)
         {: mode : copy-mode } (server.mode srv) ]
@@ -52,22 +54,28 @@
         (.. 
           (: (gerundize mode) :gsub "^%l" string.upper) " " (object-of-mode mode) ". "
           "Import/Export to " (copy-mode:gsub "^%l" string.upper)))))
+  (each [k (pairs love.keys.justPressed)] 
+    (let [on-press (. key->cmd k)]
+      (when on-press
+        ; TODO: Set some state
+        (on-press))))
 
   ; Forward events and such
-  (me.rows.code.update me.rows))
+  (me.rows.code.update me.rows dt))
 
 (fn make [srv pos] 
 
   (local element-map {})
+  (local key->cmd {})
   (fn btn [txt on-click] (menu.button [0 0] assets.font txt on-click))
-  ; Bound buttons
-  (fn bbtn [key txt on-click]
-    (let [btn (menu.button [0 0] assets.font txt on-click)]
-      (tset element-map key btn)
-      btn))
 
+  ; Bound buttons
   (fn xbbtn [key keybind txt on-click]
-    (let [btn (menu.key-button [0 0] assets.font keybind txt on-click)]
+    (let [btn (menu.key-button [0 0] assets.font keybind txt on-click)
+          scancode (: (keybind:sub 1 1) :lower) ]
+      (if (. key->cmd scancode)
+        (error (.. "scancode: " scancode " is used twice!"))
+        (tset key->cmd scancode (fn [] (btn:press) (on-click))))
       (tset element-map key btn)
       btn))
 
@@ -98,7 +106,7 @@
       :horizontal [0 0]
       (btxt :shape-lbl " SHAPE:")
        (xbbtn :paste "N:" " New " #(server.new-shape srv))
-       (xbbtn :paste "I:" " Import" #(server.load-code srv))
+       (xbbtn :paste "V:" " Import" #(server.load-code srv))
        (xbbtn :copy "E:" " Export   " #(server.copy-code srv))
        (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
        ))
@@ -127,6 +135,7 @@
      {
       :rows my-stack
       : element-map
+      : key->cmd
       :pos pos
       :dims [0 0]
       :code {: draw : update : layout}

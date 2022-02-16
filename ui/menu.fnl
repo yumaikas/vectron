@@ -38,6 +38,7 @@
                   (+ x w) (+ y h)
                   (- x 3) (+ y h)]))
   (gfx.setColor [ 1 1 1 ])
+
   (gfx.draw txt px py))
 
 (fn update-key-button [button dt] 
@@ -50,6 +51,8 @@
     (local x px)
     (local y py)
     (local (w h) (txt:getDimensions))
+    (when (> button.press-fade 0)
+      (set button.press-fade (- button.press-fade dt)))
     (when (and
             (c.pt-in-rect? [mx my] [x y w h])
             love.mouse.isJustPressed)
@@ -60,10 +63,18 @@
   (local 
     { :pos [px py]
      :hl-dims [hlw hlh]
+     : press-fade
      : txt } button)
   (local (w h) (txt:getDimensions))
   (local x px)
   (local y py)
+  (when (> press-fade 0) 
+    (gfx.setColor [ 0.5 0.5 0.5 ])
+    (gfx.polygon :fill
+                 [(- x 3) y
+                  (+ x w) y
+                  (+ x w) (+ y h)
+                  (- x 3) (+ y h)]))
   (when (c.pt-in-rect? [mx my] [x y w h])
     (gfx.setColor [ 1 0.5 1 ])
     (gfx.polygon :fill
@@ -100,6 +111,8 @@
           : pos
           : hl-dims
           : set-text
+          :press-fade 0
+          :press (fn [self] (set self.press-fade 0.1))
           :dims (v.add [w h] [10 0])
           :code { :update update-key-button
                  :draw draw-key-button }

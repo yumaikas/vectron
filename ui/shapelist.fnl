@@ -33,10 +33,12 @@
 
       (each [idx shape (ipairs shapes)]
         (let [(fmt raw-text) (shape-summary shape idx) 
-              raw-width (font:getWidth raw-text)
-              ]
+              raw-width (font:getWidth raw-text) ]
+
           (if (and (c.pt-in-rect? mpos [x yval raw-width h])
                    love.mouse.isJustPressed)
+            (server.pick-shape srv shape))
+          (if (. love.keys.justPressed (tostring idx))
             (server.pick-shape srv shape))
           (set yval (+ yval h)))))
   (do)))

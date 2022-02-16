@@ -138,13 +138,11 @@
 (fn s.shapes [server] server.shapes)
 
 (fn s.new-shape [server] 
-  (f.pp "NEW")
-  (let [[x y] server.proto-point]
-    (table.insert 
-      server.shapes 
-      { :points [[x y]]
-       :color [0 1 0] }))
-  (f.pp "SHAPE"))
+  (let [[x y] server.proto-point
+        new-shape { :points [[x y]] :color [0 1 0] } ]
+    (table.insert server.shapes new-shape)
+    new-shape))
+
 
 (fn s.move-shape [server shape after]
   (let [w/o-shape (f.filter.i server.shapes #(not= shape $)) 
@@ -247,7 +245,7 @@
       (:slide-offset) (coroutine.yield (s.slide-offset server))
 
       (:shapes) (coroutine.yield (s.shapes server))
-      (:new-shape) (do (commit) (s.new-shape server))
+      (:new-shape) (do (commit) (s.pick-shape server (s.new-shape server)))
       (:current-shape) (coroutine.yield (s.current-shape server))
       (:pick-shape shape) (s.pick-shape server shape)
       (:move-shape shape after) (do (commit) (s.move-shape server shape after))
