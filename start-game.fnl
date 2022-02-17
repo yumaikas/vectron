@@ -63,7 +63,7 @@
      canvas-dbg
      (command-map.make srv [40 600])
      (shapelist.make srv [600 30] [200 300] assets.font)
-     (color-picker.make srv [600 340] [200 240])
+     (color-picker.make srv [600 340] [200 140])
      ])
   (ui.add-layer [ (menu.fps [10 10]) ])
 

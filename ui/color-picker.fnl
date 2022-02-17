@@ -56,7 +56,7 @@
 
     (var any-had-drag? false)
     (each-in idx [1 2 3]
-       (let [yval (+ y (* h (/ idx 4)))
+       (let [yval (+ y (* h (/ (+ 1 idx) 5)))
              (has-drag? new-t) (picker-line :update (. curr-color idx) r-x yval l-x mx my (= drag-idx idx))]
          (tset curr-color idx new-t)
          (when has-drag?
@@ -84,9 +84,13 @@
           l-x (+ x (- w 10))
           drag-idx picker.drag-idx
           curr-shape (server.current-shape srv)
+          [r g b] curr-shape.color
+          [sr sg sb] (f.map.i curr-shape.color #(string.format "%.1f" $))
           (mx my) (love.mouse.getPosition) ]
+      (gfx.print  [ [r 0.2 0.2] (.. "R:" sr " ") [0.2 g 0.2] (.. "G:" sg " ") [0.2 0.2 b] (.. "B:" sb " ") ]   
+                 r-x (+ top-y (assets.font:getHeight)))
     (each-in idx [1 2 3]
-      (picker-line :draw (. curr-shape.color idx) r-x (+ y (* h (/ idx 4))) l-x mx my (= idx drag-idx))))))
+      (picker-line :draw (. curr-shape.color idx) r-x (+ y (* h (/ (+ 1 idx) 5))) l-x mx my (= idx drag-idx))))))
 
 (fn make [srv pos dims]  
   (ui.annex 
