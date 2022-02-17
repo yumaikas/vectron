@@ -1,5 +1,6 @@
 (local f (require :f))
 (local v (require :v))
+(local lpeg (require :lulpeg))
 (local {: view} (require :fennel))
 (import-macros {: check} :m)
 
@@ -75,12 +76,32 @@
 (fn fennelpts [points]
   (.. "[ " (table.concat points " ") " ]"))
 
+
+
+(local pts-patt
+  (let [
+      digit (lpeg.V :digit)
+      pair (lpeg.V :pair)
+      space+ (^ (lpeg.S " \t\r\n") 1)
+      space* (^ (lpeg.S " \t\r\n") 0)
+      topair (fn [x y] [x y])
+      ] 
+    (lpeg.P 
+      { 1 :table
+       :digit (/ (^ (lpeg.R "09") 1) tonumber)
+       :pair (/ (* digit space+ digit) topair)
+       :table (lpeg.Ct (*
+                        space* (lpeg.P "[") space* 
+                        (^ (* pair space*) 1) 
+                        (lpeg.P "]")))
+       })))
+
 ; TODO: Set up lpeg or something like that to do this better
 (fn loadfennelpts [text] 
-  (let [points []]
-    (each [x y (string.gfind text "(%d+)%s+(%d+)")]
-      (table.insert points [x y]))
-    (if (> (length points) 0)
+  (f.pp text)
+  (let [points (pts-patt:match text)]
+    (f.pp points)
+    (if (and points (> (length points) 0))
       (values :ok points)
       (values :error "Found no points"))))
 
