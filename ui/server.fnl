@@ -76,9 +76,30 @@
 (fn fennelpts [points]
   (.. "[ " (table.concat points " ") " ]"))
 
+(fn fennel-scene [scene] 
+  (.. "[ "
+      (table.concat 
+        (icollect [_ {: points :color [r g b]} (ipairs scene)]
+                  (..
+                    " { "
+                    ":color [" r " " g " " b "] " 
+                    ":points " (fennelpts (v.flatten points))
+                    " } ")))
+      " ]"))
+
+(fn lua-scene [scene]
+  (.. "{ "
+      (table.concat 
+        (icollect [_ {: points :color [r g b]} (ipairs scene)]
+                  (..
+                    " { "
+                    "color = {" r ", " g ", " b "}, "
+                    "points = " (luapts (v.flatten points)) 
+                    " }, ")))
+      " }"))
 
 
-(local pts-patt
+(local fennel-pts-patt
   (let [
       digit (lpeg.V :digit)
       pair (lpeg.V :pair)
@@ -96,10 +117,35 @@
                         (lpeg.P "]")))
        })))
 
+(local fennel-scene-patt
+  (let [
+      digit (lpeg.V :digit)
+      number (lpeg.V :number)
+      shape (lpeg.V :shape)
+      color (lpeg.V :color)
+      points (lpeg.V :points)
+      color-triple (lpeg.V :color-triple)
+      scene (lpeg.V :scene)
+      space+ (^ (lpeg.S " \t\r\n") 1)
+      space* (^ (lpeg.S " \t\r\n") 0)
+        ]
+    (lpeg.P 
+      { 1 :debug
+       :digit  (^ (lpeg.R "09") 1)
+       :number (/ (* digit (^ (* "." digit) 0)) tonumber)
+       :color-triple (lpeg.Ct (* "[" space* number space+ number space+ number space*"]"))
+       :color (lpeg.Cg (* ":color" space* color-triple) :color)
+       :points (lpeg.Cg (* ":points" space* fennel-pts-patt) :points)
+       :shape (lpeg.Ct (* "{" space* (^ (+ points color) 2) space* "}"))
+       :scene (lpeg.Ct (* "[" space* (^ shape 1) space* "]"))
+       :debug scene
+       })
+    ))
+
 ; TODO: Set up lpeg or something like that to do this better
 (fn loadfennelpts [text] 
   (f.pp text)
-  (let [points (pts-patt:match text)]
+  (let [points (fennel-pts-patt:match text)]
     (f.pp points)
     (if (and points (> (length points) 0))
       (values :ok points)
@@ -119,7 +165,16 @@
     (match copy-mode
       :lua (copy (luapts (v.flatten current-shape.points)))
       :fennel (copy (fennelpts (v.flatten current-shape.points)))
-      _ (error (.. "Unknown copy-mode" copy-mode) ))))
+      _ (error (.. "Unknown copy-mode" copy-mode)))))
+
+(fn s.copy-scene [server]
+  (let [shapes (s.shapes server)
+        copy-mode server.copy-mode ]
+    (match copy-mode
+      :lua (copy (lua-scene shapes))
+      :fennel (copy (fennel-scene shapes))
+      _ (error (.. "Unknown copy-mode " copy-mode)))))
+
 
 (fn pts-loader-for-mode [copy-mode]
   (match copy-mode 
@@ -196,7 +251,7 @@
     (if (= ok :ok)
       (set current-shape.points pts)
       (do (print pts)
-        (s.set-status server "Didn't find any points on the clipboard")))))
+        (s.set-status server "Did not find any points on the clipboard")))))
 
 
 (fn copy-shape [shape] 
@@ -285,8 +340,10 @@
       (:redo) (redo server)
 
       (:set-copy-mode mode) (s.set-copy-mode server mode)
-      (:copy-code) (do (commit) (s.copy-code server))
+      (:copy-code) (do (s.copy-code server))
       (:load-code) (do (commit) (keep-status) (s.load-paste server))
+
+      (:copy-scene) (do (s.copy-scene server))
 
       (:update dt) (do (keep-status) 
                      (s.update server dt))
@@ -387,6 +444,8 @@
 
  :copy-code (fn [coro] (cast coro :copy-code))
  :load-code (fn [coro] (cast coro :load-code))
+
+ :copy-scene (fn [coro] (cast coro :copy-scene))
 
  :set-mode (fn [coro mode] (cast coro :set-mode mode))
  :set-copy-mode (fn [coro mode] (cast coro :set-copy-mode mode))

@@ -55,15 +55,15 @@
   (fn x+= [by] (set x-val (+ x-val by)) x-val)
   (local srv (server.make))
   (local canvas-dbg (menu.text [300 300] assets.font ""))
-  (local blot (canvas.make [30 30 550 550] canvas-dbg srv))
+  (local blot (canvas.make [15 30 550 550] canvas-dbg srv))
   (server.start srv { :canvas blot })
   (ui.add-layer 
     [
      blot
      canvas-dbg
      (command-map.make srv [40 600])
-     (shapelist.make srv [600 30] [200 300] assets.font)
-     (color-picker.make srv [600 340] [200 140])
+     (shapelist.make srv [585 30] [200 300] assets.font)
+     (color-picker.make srv [585 340] [200 140])
      ])
   (ui.add-layer [ (menu.fps [10 10]) ])
 

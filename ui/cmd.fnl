@@ -31,8 +31,8 @@
 
 (fn export-switch-text [copy-mode]
   (match copy-mode
-    :lua    [ [0 0 0] "L:" [1 1 1] " To Fennel"]
-    :fennel [ [0 0 0]  "L:" [1 1 1] " To Lua   "]))
+    :lua    [ [0 0 0] "F:" [1 1 1] " To Fennel"]
+    :fennel [ [0 0 0]  "F:" [1 1 1] " To Lua   "]))
 
 (fn start-export-text [copy-mode] 
   (match copy-mode
@@ -106,8 +106,8 @@
       :horizontal [0 0]
       (btxt :shape-lbl " SHAPE:")
        (xbbtn :paste "N:" " New " #(server.new-shape srv))
-       (xbbtn :paste "V:" " Import" #(server.load-code srv))
-       (xbbtn :copy "E:" " Export   " #(server.copy-code srv))
+       (xbbtn :paste "[:" " Import" #(server.load-code srv))
+       (xbbtn :copy "]:" " Export   " #(server.copy-code srv))
        (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
        ))
 
@@ -118,19 +118,28 @@
         :lua (server.set-copy-mode srv :fennel))))
 
   (local row3
+    (ui-stack
+      :horizontal [0 0]
+      (btxt :scene-lbl " SCENE:")
+      (xbbtn :paste "S:" " Save" #(server.copy-scene srv))
+      (xbbtn :paste "L:" " Load  " #(server.load-code srv))
+      (xbbtn :paste "!:" " (to/from clipboard)" #(do))
+      ))
+
+  (local row4
     (ui-stack 
       :horizontal [0 0]
       (btxt :app-lbl "   APP:") 
       (xbbtn :undo "U:" " Undo" #(server.undo srv))
       (xbbtn :redo "R:" " Redo  " #(server.redo srv)) 
-      (xbbtn :code-switch "L:" (start-export-text :fennel) switch-export)
+      (xbbtn :code-switch "F:" (start-export-text :fennel) switch-export)
       (xbbtn :quit "Q:" " Quit" #(love.event.quit 0))))
 
   (fn layout [me] 
     (me.rows.code.layout me.rows))
   (let 
     [
-     my-stack (ui-stack :vertical pos row0 row1 row2 row3)
+     my-stack (ui-stack :vertical pos row0 row1 row2 row3 row4)
      me 
      {
       :rows my-stack
