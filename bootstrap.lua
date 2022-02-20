@@ -6,9 +6,16 @@ pp = function(x) print(fennel.view(x)) end
 local make_love_searcher = function(env)
    return function(module_name)
       local path = module_name:gsub("%.", "/") .. ".fnl"
+      local folderPath = module_name:gsub("%.", "/") .. "/init.fnl"
       if love.filesystem.getInfo(path) then
          return function(...)
             local code = love.filesystem.read(path)
+            return fennel.eval(code, {env=env}, ...)
+         end, path
+      end
+      if love.filesystem.getInfo(folderPath) then
+         return function(...)
+            local code = love.filesystem.read(folderPath)
             return fennel.eval(code, {env=env}, ...)
          end, path
       end

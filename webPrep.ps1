@@ -1,14 +1,15 @@
 try {
-$paths = ls -Recurse | ? { -not(($_.FullName -ilike "*love-bins*") -or ($_.FullName -ilike "*.ps1") -or ($_.FullName -ilike "*publish*")) }
+$paths = ls | ? { -not(($_.FullName -ilike "*love-bins*") -or ($_.FullName -ilike "*.ps1") -or ($_.FullName -ilike "*publish*")) } | % { $_.FullName; }
 
 
-Remove-Item -Recurse -Force .\publish\wobble\
-New-Item .\publish\wobble\ -ItemType Directory
-Remove-Item -Recurse -Force .\publish\wobblyInvaders.love
-Compress-Archive $paths publish\wobblyInvaders.love -Force
+ls -Recurse .\publish\vectron\ | Remove-Item -Recurse -Force 
+
+#New-Item .\publish\vectron\ -ItemType Directory
+Remove-Item -Recurse -Force .\publish\vectron.love
+Compress-Archive $paths publish\vectron.love
 Push-location publish\
-"Wobbly Invaders!" | npx love.js wobblyInvaders.love wobble -c
-cd wobble
+"Vectron" | npx love.js vectron.love vectron -c
+cd vectron
 web-dir
 }
 finally {
