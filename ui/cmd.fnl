@@ -122,7 +122,7 @@
       :horizontal [0 0]
       (btxt :scene-lbl " SCENE:")
       (xbbtn :paste "S:" " Save" #(server.copy-scene srv))
-      (xbbtn :paste "L:" " Load  " #(server.load-code srv))
+      (xbbtn :paste "L:" " Load  " #(server.load-scene srv))
       (xbbtn :paste "!:" " (to/from clipboard)" #(do))
       ))
 

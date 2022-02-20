@@ -1,4 +1,5 @@
 (local f (require :f))
+(local shape<> (require :ui.server.serialize))
 (local v (require :v))
 (local lpeg (require :lulpeg))
 (local {: view} (require :fennel))
@@ -7,12 +8,9 @@
 (local s {})
 (fn s.current-shape [server] (. server.shapes server.current-shape))
 
-(fn s.update [server dt]
-  (f.pp "UPDATE!"))
+(fn s.update [server dt] (f.pp "UPDATE!"))
 
-(fn s.set-mode [server new-mode] 
-  ; TODO: Validate mode transisions
-  (set server.mode new-mode))
+(fn s.set-mode [server new-mode] (set server.mode new-mode))
 
 (fn s.add-point [server pt]
   (let [current-shape (s.current-shape server)]
@@ -62,138 +60,30 @@
         (tset server.handles handle nil))
       (error (.. "Tried to end a non-existant handle: " handle)))))
 
-
-(fn copy [text]
-  (love.system.setClipboardText text))
+(fn copy [text] (love.system.setClipboardText text))
 
 (fn s.set-copy-mode [server mode]
   (check (f.index-of [:lua :fennel] mode) (.. "Cannot set copy-mode to " mode))
   (set server.copy-mode mode))
 
-(fn luapts [points] 
-  (.. "{ " (table.concat points ", ") " }"))
-
-(fn fennelpts [points]
-  (.. "[ " (table.concat points " ") " ]"))
-
-(fn fennel-scene [scene] 
-  (.. "[ "
-      (table.concat 
-        (icollect [_ {: points :color [r g b]} (ipairs scene)]
-                  (..
-                    " { "
-                    ":color [" r " " g " " b "] " 
-                    ":points " (fennelpts (v.flatten points))
-                    " } ")))
-      " ]"))
-
-(fn lua-scene [scene]
-  (.. "{ "
-      (table.concat 
-        (icollect [_ {: points :color [r g b]} (ipairs scene)]
-                  (..
-                    " { "
-                    "color = {" r ", " g ", " b "}, "
-                    "points = " (luapts (v.flatten points)) 
-                    " }, ")))
-      " }"))
-
-
-(local fennel-pts-patt
-  (let [
-      digit (lpeg.V :digit)
-      pair (lpeg.V :pair)
-      space+ (^ (lpeg.S " \t\r\n") 1)
-      space* (^ (lpeg.S " \t\r\n") 0)
-      topair (fn [x y] [x y])
-      ] 
-    (lpeg.P 
-      { 1 :table
-       :digit (/ (^ (lpeg.R "09") 1) tonumber)
-       :pair (/ (* digit space+ digit) topair)
-       :table (lpeg.Ct (*
-                        space* (lpeg.P "[") space* 
-                        (^ (* pair space*) 1) 
-                        (lpeg.P "]")))
-       })))
-
-(local fennel-scene-patt
-  (let [
-      digit (lpeg.V :digit)
-      number (lpeg.V :number)
-      shape (lpeg.V :shape)
-      color (lpeg.V :color)
-      points (lpeg.V :points)
-      color-triple (lpeg.V :color-triple)
-      scene (lpeg.V :scene)
-      space+ (^ (lpeg.S " \t\r\n") 1)
-      space* (^ (lpeg.S " \t\r\n") 0)
-        ]
-    (lpeg.P 
-      { 1 :debug
-       :digit  (^ (lpeg.R "09") 1)
-       :number (/ (* digit (^ (* "." digit) 0)) tonumber)
-       :color-triple (lpeg.Ct (* "[" space* number space+ number space+ number space*"]"))
-       :color (lpeg.Cg (* ":color" space* color-triple) :color)
-       :points (lpeg.Cg (* ":points" space* fennel-pts-patt) :points)
-       :shape (lpeg.Ct (* "{" space* (^ (+ points color) 2) space* "}"))
-       :scene (lpeg.Ct (* "[" space* (^ shape 1) space* "]"))
-       :debug scene
-       })
-    ))
-
-; TODO: Set up lpeg or something like that to do this better
-(fn loadfennelpts [text] 
-  (f.pp text)
-  (let [points (fennel-pts-patt:match text)]
-    (f.pp points)
-    (if (and points (> (length points) 0))
-      (values :ok points)
-      (values :error "Found no points"))))
-
-(fn loadluapts [text]
-  (let [points []]
-    (each [x y (string.gfind text "(%d+)%s*,%s*(%d+)")]
-      (table.insert points [x y]))
-    (if (> (length points) 0)
-      (values :ok points)
-      (values :error "Found no points"))))
-
 (fn s.copy-code [server] 
   (let [current-shape (s.current-shape server)
         copy-mode server.copy-mode]
-    (match copy-mode
-      :lua (copy (luapts (v.flatten current-shape.points)))
-      :fennel (copy (fennelpts (v.flatten current-shape.points)))
-      _ (error (.. "Unknown copy-mode" copy-mode)))))
+    (copy (shape<>.points->text copy-mode current-shape.points))))
 
 (fn s.copy-scene [server]
   (let [shapes (s.shapes server)
         copy-mode server.copy-mode ]
-    (match copy-mode
-      :lua (copy (lua-scene shapes))
-      :fennel (copy (fennel-scene shapes))
-      _ (error (.. "Unknown copy-mode " copy-mode)))))
+    (shape<>.scene->text copy-mode shapes)))
 
-
-(fn pts-loader-for-mode [copy-mode]
-  (match copy-mode 
-    :lua loadluapts 
-    :fennel loadfennelpts 
-    _ (error (.. "Unknown copy-mode in pts-loader-for-mode " copy-mode))))
-
-(fn s.set-status [server status] 
-  (set server.status-line status))
-
-(fn s.clear-status [server] 
-  (set server.status-line nil))
+(fn s.set-status [server status] (set server.status-line status))
+(fn s.clear-status [server] (set server.status-line nil))
 
 (fn s.begin-slide [server at]
   (set server.slide.start at)
   (set server.slide.current at))
 
-(fn s.update-slide [server to]
-  (set server.slide.current to))
+(fn s.update-slide [server to] (set server.slide.current to))
 
 (fn s.end-slide [server at]
   (let [current-shape (s.current-shape server)
@@ -242,12 +132,23 @@
     server.slide.current
     server.slide.start))
 
+(fn s.load-scene [server]
+  (let [copy-mode server.copy-mode
+        text (love.system.getClipboardText)
+        (ok shapes) (shape<>.text->scene copy-mode text)]
+    (if (and (= ok :ok) (> (length shapes) 0))
+      (do 
+        (set server.current-shape 1)
+        (set server.shapes shapes))
+      (do (print shapes)
+        (s.set-status server "Unable to load scene from clipboard")))))
+        
+
 (fn s.load-paste [server]
   (let [current-shape (s.current-shape server)
         copy-mode server.copy-mode
         input (love.system.getClipboardText)
-        loader (pts-loader-for-mode copy-mode)
-        (ok pts) (loader input) ]
+        (ok pts) (shape<>.text->points copy-mode input) ]
     (if (= ok :ok)
       (set current-shape.points pts)
       (do (print pts)
@@ -344,6 +245,7 @@
       (:load-code) (do (commit) (keep-status) (s.load-paste server))
 
       (:copy-scene) (do (s.copy-scene server))
+      (:load-scene) (do (commit) (keep-status) (s.load-scene server))
 
       (:update dt) (do (keep-status) 
                      (s.update server dt))
@@ -446,6 +348,7 @@
  :load-code (fn [coro] (cast coro :load-code))
 
  :copy-scene (fn [coro] (cast coro :copy-scene))
+ :load-scene (fn [coro] (cast coro :load-scene))
 
  :set-mode (fn [coro mode] (cast coro :set-mode mode))
  :set-copy-mode (fn [coro mode] (cast coro :set-copy-mode mode))
