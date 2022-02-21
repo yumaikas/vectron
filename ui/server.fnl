@@ -73,8 +73,8 @@
 
 (fn s.copy-scene [server]
   (let [shapes (s.shapes server)
-        copy-mode server.copy-mode ]
-    (shape<>.scene->text copy-mode shapes)))
+        copy-mode server.copy-mode]
+    (copy (shape<>.scene->text copy-mode shapes))))
 
 (fn s.set-status [server status] (set server.status-line status))
 (fn s.clear-status [server] (set server.status-line nil))

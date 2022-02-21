@@ -1,6 +1,7 @@
 (local f (require :f))
 (local v (require :v))
 (local lpeg (require :lulpeg))
+; (local pegdebug (require :pegdebug))
 (local {: view} (require :fennel))
 (import-macros {: check} :m)
 
@@ -29,7 +30,7 @@
                     " { "
                     "color = {" r ", " g ", " b "}, "
                     "points = " (luapts (v.flatten points)) 
-                    " }, ")))
+                    " } ")) ", ")
       " }"))
 
 
@@ -48,6 +49,44 @@
        :table (lpeg.Ct (* space* "[" space* (^ (* pair space*) 1) "]"))
        })))
 
+(local lua-pts-patt
+  (let [
+      digit (lpeg.V :digit)
+      pair (lpeg.V :pair)
+      space+ (^ (lpeg.S " \t\r\n") 1)
+      space* (^ (lpeg.S " \t\r\n") 0)
+      topair (fn [x y] [x y])
+      ] 
+    (lpeg.P 
+      { 1 :table
+       :digit (/ (^ (lpeg.R "09") 1) tonumber)
+       :pair (/ (* digit space* "," space* digit) topair)
+       :table (lpeg.Ct (* space* "{" space* (^ (* pair space* (^ (lpeg.P ",") 0) space*) 1) "}"))
+       })))
+
+(local lua-scene-patt
+  (let [
+      digit (lpeg.V :digit)
+      number (lpeg.V :number)
+      shape (lpeg.V :shape)
+      color (lpeg.V :color)
+      points (lpeg.V :points)
+      color-triple (lpeg.V :color-triple)
+      scene (lpeg.V :scene)
+      space+ (^ (lpeg.S " \t\r\n") 1)
+      space* (^ (lpeg.S " \t\r\n") 0)
+        ]
+    (lpeg.P { 1 :debug
+       :digit  (^ (lpeg.R "09") 1)
+       :number (/ (* digit (^ (* "." digit) 0)) tonumber)
+       :color-triple (lpeg.Ct (* "{" space* number "," space+ number "," space+ number space*"}"))
+       :color (lpeg.Cg (* "color" space* "=" space* color-triple) :color)
+       :points (lpeg.Cg (* "points" space* "=" space* lua-pts-patt) :points)
+       :shape (lpeg.Ct (* "{" (^ (* space* (+ points color) space* (^ (lpeg.P ",") 0) space* ) 2) "}"))
+       :scene (lpeg.Ct (* space* "{"  (^ (* space* shape space* (^ (lpeg.P ",") 0) space*) 1) space* "}" space*))
+       :debug scene 
+       })
+    ))
 (local fennel-scene-patt
   (let [
       digit (lpeg.V :digit)
@@ -72,15 +111,18 @@
        :debug scene 
        })
     ))
-       ; (lpeg.Ct (* space* (lpeg.P "[" )))
 
 (fn is-full-shape? [shape]
   (and (. shape :color) (. shape :points)))
 
 (fn load-fennel-scene [text]
   (let [scene (fennel-scene-patt:match text)]
-    (f.pp text)
-    (f.pp scene)
+    (if (and scene (> (length scene) 0) (f.all? scene is-full-shape?))
+      (values :ok scene)
+      (values :error "Scene failed to parse"))))
+
+(fn load-lua-scene [text]
+  (let [scene (lua-scene-patt:match text)]
     (if (and scene (> (length scene) 0) (f.all? scene is-full-shape?))
       (values :ok scene)
       (values :error "Scene failed to parse"))))
@@ -88,16 +130,13 @@
 
 (fn loadfennelpts [text] 
   (let [points (fennel-pts-patt:match text)]
-    (f.pp points)
     (if (and points (> (length points) 0))
       (values :ok points)
       (values :error "Found no points"))))
 
-(fn loadluapts [text]
-  (let [points []]
-    (each [x y (string.gfind text "(%d+)%s*,%s*(%d+)")]
-      (table.insert points [x y]))
-    (if (> (length points) 0)
+(fn loadluapts [text] 
+  (let [points (lua-pts-patt:match text)]
+    (if (and points (> (length points) 0))
       (values :ok points)
       (values :error "Found no points"))))
 
@@ -125,6 +164,7 @@
 (fn text->scene [mode text]
   (match mode
     :fennel (load-fennel-scene text)
+    :lua (load-lua-scene text)
     _ (mode-not-found! mode :text->scene)))
 
 {: text->points : points->text : scene->text : text->scene  }
