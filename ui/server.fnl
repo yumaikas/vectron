@@ -4,6 +4,20 @@
 (local lpeg (require :lulpeg))
 (local {: view} (require :fennel))
 (import-macros {: check} :m)
+(import-macros {: protocol : export-protocol} :ui.proto)
+
+; Aping Erlang GenServers here
+(fn call [coro ...] 
+  ; (print "CAST" (view ...))
+  (let [(ok msg) (coroutine.resume coro ...)]
+    ; Ack
+    (if ok
+      (do (coroutine.resume coro :ACK) msg)
+      (error msg))))
+
+(fn cast [coro ...] 
+  ; (print "CALL" (view ...))
+  (assert (coroutine.resume coro ...)))
 
 (local s {})
 (fn s.current-shape [server] (. server.shapes server.current-shape))
@@ -209,55 +223,54 @@
         (set version-idx (+ version-idx 1))
         (apply-version server (. history version-idx))))
 
-    
-    (match (coroutine.yield)
-      (:add-point pt) (do (commit) (s.add-point server pt))
-      (:remove-point pt) (do (commit) (s.remove-point server pt))
-      (:insert-point after pt) (do (commit) (s.insert-point server after pt))
+    (protocol :vectorn-server
+      (cast :add-point pt) (do (commit) (s.add-point server pt))
+      (cast :remove-point pt) (do (commit) (s.remove-point server pt))
+      (cast :insert-point after pt) (do (commit) (s.insert-point server after pt))
 
       ; TODO: Update this code to use operation handles akin to drags 
-      (:begin-slide at) (s.begin-slide server at)
-      (:update-slide to) (s.update-slide server to)
-      (:end-slide at) (s.end-slide server at)
-      (:slide-offset) (coroutine.yield (s.slide-offset server))
+      (cast :begin-slide at) (s.begin-slide server at)
+      (cast :update-slide to) (s.update-slide server to)
+      (cast :end-slide at) (s.end-slide server at)
+      (call :slide-offset) (coroutine.yield (s.slide-offset server))
 
-      (:shapes) (coroutine.yield (s.shapes server))
-      (:new-shape) (do (commit) (s.pick-shape server (s.new-shape server)))
-      (:current-shape) (coroutine.yield (s.current-shape server))
-      (:pick-shape shape) (s.pick-shape server shape)
-      (:move-shape shape after) (do (commit) (s.move-shape server shape after))
+      (call :shapes) (coroutine.yield (s.shapes server))
+      (cast :new-shape) (do (commit) (s.pick-shape server (s.new-shape server)))
+      (call :current-shape) (coroutine.yield (s.current-shape server))
+      (cast :pick-shape shape) (s.pick-shape server shape)
+      (cast :move-shape shape after) (do (commit) (s.move-shape server shape after))
 
       ; TODO: Keep a temp color copy on hand?
-      (:set-shape-color shape color) (do (s.set-shape-color server shape color))
-      (:commit-shape-color shape color) (do (commit) (s.set-shape-color server shape color))
+      (cast :set-shape-color shape color) (do (s.set-shape-color server shape color))
+      (cast :commit-shape-color shape color) (do (commit) (s.set-shape-color server shape color))
 
-      (:begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
-      (:update-drag handle coord) (s.update-drag server handle coord)
+      (call :begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
+      (cast :update-drag handle coord) (s.update-drag server handle coord)
 
-      (:end-drag handle coord) (do (commit) (s.end-drag server handle coord))
-      (:set-mode new-mode) (s.set-mode server new-mode)
+      (cast :end-drag handle coord) (do (commit) (s.end-drag server handle coord))
+      (cast :set-mode new-mode) (s.set-mode server new-mode)
 
-      (:undo) (undo server)
-      (:redo) (redo server)
+      (cast :undo) (undo server)
+      (cast :redo) (redo server)
 
-      (:set-copy-mode mode) (s.set-copy-mode server mode)
-      (:copy-code) (do (s.copy-code server))
-      (:load-code) (do (commit) (keep-status) (s.load-paste server))
+      (cast :set-copy-mode mode) (s.set-copy-mode server mode)
+      (cast :copy-code) (do (s.copy-code server))
+      (cast :load-code) (do (commit) (keep-status) (s.load-paste server))
 
-      (:copy-scene) (do (s.copy-scene server))
-      (:load-scene) (do (commit) (keep-status) (s.load-scene server))
+      (cast :copy-scene) (do (s.copy-scene server))
+      (cast :load-scene) (do (commit) (keep-status) (s.load-scene server))
 
-      (:update dt) (do (keep-status) 
+      (cast :update dt) (do (keep-status) 
                      (s.update server dt))
 
-      (:status-line) (do (keep-status)
+      (call :status-line) (do (keep-status)
                        (coroutine.yield server.status-line))
 
-      (:state) (do (keep-status) 
+      (call :state) (do (keep-status) 
                  (coroutine.yield server))
-      (:points) (do (keep-status) 
+      (call :points) (do (keep-status) 
                   (coroutine.yield (s.points server)))
-      (:mode) (do (keep-status) 
+      (call :mode) (do (keep-status) 
                 (coroutine.yield {:mode server.mode :copy-mode server.copy-mode }))
 
       unmatched (error (.. "Unknown request " (view unmatched))))
@@ -301,60 +314,9 @@
               (error msg))
       _ srv)))
 
+(let [proto (export-protocol :vectorn-server)]
+  (set proto.make make)
+  (set proto.start 
+       (fn [coro inputs] (coroutine.resume coro :start inputs)))
+  proto)
 
-; Aping Erlang GenServers here
-(fn call [coro ...] 
-  ; (print "CAST" (view ...))
-  (let [(ok msg) (coroutine.resume coro ...)]
-    ; Ack
-    (if ok
-      (do (coroutine.resume coro :ACK) msg)
-      (error msg))))
-
-(fn cast [coro ...] 
-  ; (print "CALL" (view ...))
-  (assert (coroutine.resume coro ...)))
-
-{: make 
- :start (fn [coro inputs] 
-           (coroutine.resume coro :start inputs))
-
- :add-point (fn [coro pt] (cast coro :add-point pt))
- :insert-point (fn [coro after pt] (cast coro :insert-point after pt))
- :remove-point (fn [coro pt] (cast coro :remove-point pt))
-
- :begin-drag (fn [coro pt] (call coro :begin-drag pt))
- :update-drag (fn [coro handle coord] (cast coro :update-drag handle coord))
- :end-drag (fn [coro handle coord] (cast coro :end-drag handle coord))
-
- :slide-offset (fn [coro] (call coro :slide-offset))
- :begin-slide (fn [coro at] (cast coro :begin-slide at))
- :update-slide (fn [coro to] (cast coro :update-slide to))
- :end-slide (fn [coro at] (cast coro :end-slide at))
-
- :shapes (fn [coro] (call coro :shapes))
- :current-shape (fn [coro] (call coro :current-shape))
- :pick-shape (fn [coro shape] (cast coro :pick-shape shape))
- :move-shape (fn [coro shape after] (cast coro :move-shape shape after))
- :new-shape (fn [coro] (cast coro :new-shape))
-
- :commit-shape-color (fn [coro shape color] (cast coro :commit-shape-color shape color))
- :set-shape-color (fn [coro shape color] (cast coro :set-shape-color shape color))
-
- :undo (fn [coro] (cast coro :undo))
- :redo (fn [coro] (cast coro :redo))
-
- :copy-code (fn [coro] (cast coro :copy-code))
- :load-code (fn [coro] (cast coro :load-code))
-
- :copy-scene (fn [coro] (cast coro :copy-scene))
- :load-scene (fn [coro] (cast coro :load-scene))
-
- :set-mode (fn [coro mode] (cast coro :set-mode mode))
- :set-copy-mode (fn [coro mode] (cast coro :set-copy-mode mode))
- :update (fn [coro dt] (cast coro :update dt))
- :mode (fn [coro] (call coro :mode))
- :points (fn [coro] (call coro :points))
- :get-state (fn [coro] (call coro :state))
- :status-line (fn [coro] (call coro :status-line))
- }
