@@ -6,6 +6,7 @@
 (fn number? [t] (= (type t) :number))
 (fn boolean? [t] (= (type t) :boolean))
 (fn string? [t] (= (type t) :string))
+(fn empty? [t] (= (length t) 0))
 (fn even? [n] (and (number? n) (= (% n 2) 0)))
 
 (fn uuid []
@@ -111,6 +112,7 @@
  : boolean?
  : string?
  : number?
+ : empty?
  :values (fn [tbl] (icollect [_ v (pairs tbl)] v))
  :keys (fn [tbl] (icollect [k _ (pairs tbl)] k))
  : lerp

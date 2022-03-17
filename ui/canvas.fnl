@@ -56,7 +56,13 @@
   ret)
 
 (fn highlighted-point [points mpos]
-  (f.find points #(< (v.dist mpos $) 10)))
+  (let [points (f.filter.i points #(< (v.dist mpos $) 10))]
+    (when (not (f.empty? points))
+      (accumulate [closest (. points 1)
+                   _ pt (ipairs points)]
+                  (if (> (v.dist mpos closest) (v.dist mpos pt))
+                    pt
+                    closest)))))
 
 (fn draw [canvas]
   (let 
@@ -65,6 +71,7 @@
      offset (server.slide-offset canvas.server)
      bg-shapes (f.filter.i (server.shapes canvas.server) #(not= $ curr-shape))
      {:mode mode} (server.mode canvas.server)
+     color-mode (server.color-mode canvas.server)
      pt-count (length curr-shape.points)
      {:pos [x y] :dims [w h]} canvas 
      (mx my) (love.mouse.getPosition)
@@ -72,7 +79,9 @@
 
     (each-in bgs bg-shapes 
       (let [pt-count (length bgs.points)]
-        (gfx.setColor bgs.color)
+        (match color-mode
+          :alebedo (gfx.setColor bgs.color)
+          :highlight-selected (gfx.setColor [0.3 0.3 0.3]))
         (if 
           (> pt-count 1)
           (gfx.line (v.flatten bgs.points))
@@ -125,8 +134,9 @@
         :add
         (server.add-point srv [mx my])
         :insert
-        (let [[_ after] (hl-line points [mx my])]
-          (server.insert-point srv after [mx my]))
+        (when (> (length points) 1)
+          (let [[_ after] (hl-line points [mx my])]
+            (server.insert-point srv after [mx my])))
         :delete
         (let [hlpt (highlighted-point points [mx my])]
           (when hlpt

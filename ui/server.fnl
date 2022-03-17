@@ -6,6 +6,19 @@
 (import-macros {: check} :m)
 (import-macros {: protocol : export-protocol} :ui.proto)
 
+(local server-start-state
+  (let [starting-shape {:points [] :color [0 1 0]} ]
+  {
+   :mode :add
+   :copy-mode :fennel
+   :color-mode :alebedo ; Can be alebedo or highlight-selected
+   :current-shape 1
+   :shapes [starting-shape]
+   :slide {:start [0 0] :current [0 0]}
+   :handles {}
+   }))
+
+
 ; Aping Erlang GenServers here
 (fn call [coro ...] 
   ; (print "CAST" (view ...))
@@ -25,6 +38,20 @@
 (fn s.update [server dt] (f.pp "UPDATE!"))
 
 (fn s.set-mode [server new-mode] (set server.mode new-mode))
+
+(local modes [:alebedo :highlight-selected])
+(fn s.color-mode [server] server.color-mode)
+
+(fn s.set-color-mode [server mode] 
+  (if (f.index-of modes mode)
+    (set server.color-mode mode)
+    (error (.. "Invalid color mode: " mode))))
+
+(fn s.toggle-color-mode [server] 
+  (set server.color-mode 
+       (match server.color-mode
+         :alebedo  :highlight-selected
+         :highlight-selected :alebedo)))
 
 (fn s.add-point [server pt]
   (let [current-shape (s.current-shape server)]
@@ -83,7 +110,7 @@
 (fn s.copy-code [server] 
   (let [current-shape (s.current-shape server)
         copy-mode server.copy-mode]
-    (copy (shape<>.points->text copy-mode current-shape.points))))
+    (copy (shape<>.points->text copy-mode (v.flatten current-shape.points)))))
 
 (fn s.copy-scene [server]
   (let [shapes (s.shapes server)
@@ -123,7 +150,6 @@
     (table.insert server.shapes new-shape)
     new-shape))
 
-
 (fn s.move-shape [server shape after]
   (let [w/o-shape (f.filter.i server.shapes #(not= shape $)) 
         insert-idx (+ 1 (or (f.index-of w/o-shape after) 0)) ]
@@ -140,6 +166,15 @@
     (if pick-idx
       (set server.current-shape pick-idx)
       (error "Tried to pick shape not in the server!"))))
+
+(fn s.clear-scene [server] 
+  (let [starting-shape {:points [] :color [0 1 0]} ]
+   (set server.mode :add)
+   (set server.copy-mode :fennel)
+   (set server.current-shape 1)
+   (set server.shapes [starting-shape])
+   (set server.slide {:start [0 0] :current [0 0]})
+   (set server.handles {})))
 
 (fn s.slide-offset [server]
   (v.sub 
@@ -231,13 +266,13 @@
       ; TODO: Update this code to use operation handles akin to drags 
       (cast :begin-slide at) (s.begin-slide server at)
       (cast :update-slide to) (s.update-slide server to)
-      (cast :end-slide at) (s.end-slide server at)
+      (cast :end-slide at) (do (commit) (s.end-slide server at))
       (call :slide-offset) (coroutine.yield (s.slide-offset server))
 
       (call :shapes) (coroutine.yield (s.shapes server))
       (cast :new-shape) (do (commit) (s.pick-shape server (s.new-shape server)))
       (call :current-shape) (coroutine.yield (s.current-shape server))
-      (cast :pick-shape shape) (s.pick-shape server shape)
+      (cast :pick-shape shape) (do (commit) (s.pick-shape server shape))
       (cast :move-shape shape after) (do (commit) (s.move-shape server shape after))
 
       ; TODO: Keep a temp color copy on hand?
@@ -246,12 +281,15 @@
 
       (call :begin-drag pt)  (coroutine.yield (s.begin-drag server pt))
       (cast :update-drag handle coord) (s.update-drag server handle coord)
-
       (cast :end-drag handle coord) (do (commit) (s.end-drag server handle coord))
+
       (cast :set-mode new-mode) (s.set-mode server new-mode)
 
       (cast :undo) (undo server)
       (cast :redo) (redo server)
+
+      (cast :set-color-mode mode) (s.set-color-mode server mode)
+      (cast :toggle-color-mode) (s.toggle-color-mode server)
 
       (cast :set-copy-mode mode) (s.set-copy-mode server mode)
       (cast :copy-code) (do (s.copy-code server))
@@ -259,10 +297,12 @@
 
       (cast :copy-scene) (do (s.copy-scene server))
       (cast :load-scene) (do (commit) (keep-status) (s.load-scene server))
+      (cast :clear-scene) (do (commit) (s.clear-scene server))
 
       (cast :update dt) (do (keep-status) 
                      (s.update server dt))
 
+      (call :color-mode) (do (keep-status) (coroutine.yield (s.color-mode server)))
       (call :status-line) (do (keep-status)
                        (coroutine.yield server.status-line))
 
@@ -294,17 +334,6 @@
       [:start {: canvas }]  (s.init-canvas server canvas)
       _ (error (.. "Given " (view vals) " instead of expected start inputs!")))))
 
-
-(local server-start-state
-  (let [starting-shape {:points [] :color [0 1 0]} ]
-  {
-   :mode :add
-   :copy-mode :fennel
-   :current-shape 1
-   :shapes [starting-shape]
-   :slide {:start [0 0] :current [0 0]}
-   :handles {}
-   }))
 
 (fn make [] 
   (let [srv (coroutine.create s.serve)]

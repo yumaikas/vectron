@@ -31,13 +31,13 @@
 
 (fn export-switch-text [copy-mode]
   (match copy-mode
-    :lua    [ [0 0 0] "F:" [1 1 1] " To Fennel"]
-    :fennel [ [0 0 0]  "F:" [1 1 1] " To Lua   "]))
+    :lua    [ [0 0 0] "F:" [1 1 1] " To Fnl "]
+    :fennel [ [0 0 0]  "F:" [1 1 1] " To Lua "]))
 
 (fn start-export-text [copy-mode] 
   (match copy-mode
-    :lua    " To Fennel" 
-    :fennel " To Lua   "))
+    :lua    " To Fnl " 
+    :fennel " To Lua "))
 
 (fn update [me dt] 
   (local {:element-map elements
@@ -97,7 +97,7 @@
        (btxt :pts-lbl "POINTS:")
        (xbbtn :add "A:" " Add " #(server.set-mode srv :add)) 
        (xbbtn :move "M:" " Move  " #(server.set-mode srv :move))
-       (xbbtn :move "I:" " Insert   " #(server.set-mode srv :insert))
+       (xbbtn :move "I:" " Insert " #(server.set-mode srv :insert))
        (xbbtn :del "D:" " Delete" #(server.set-mode srv :delete)) 
        ))
 
@@ -107,7 +107,7 @@
       (btxt :shape-lbl " SHAPE:")
        (xbbtn :paste "N:" " New " #(server.new-shape srv))
        (xbbtn :paste "[:" " Import" #(server.load-code srv))
-       (xbbtn :copy "]:" " Export   " #(server.copy-code srv))
+       (xbbtn :copy "]:" " Export " #(server.copy-code srv))
        (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
        ))
 
@@ -123,7 +123,8 @@
       (btxt :scene-lbl " SCENE:")
       (xbbtn :paste "S:" " Save" #(server.copy-scene srv))
       (xbbtn :paste "L:" " Load  " #(server.load-scene srv))
-      (xbbtn :paste "!:" " (to/from clipboard)" #(do))
+      (xbbtn :paste "C:" " Clear  " #(server.clear-scene srv))
+      (xbbtn :paste "H:" " Highlight(on/off)" #(server.toggle-color-mode srv))
       ))
 
   (local row4
