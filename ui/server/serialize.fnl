@@ -1,9 +1,17 @@
 (local f (require :f))
 (local v (require :v))
 (local lpeg (require :lulpeg))
+(local polyline (require :ui.shapes.polyline))
+(local polygon (require :ui.shapes.polygon))
 ; (local pegdebug (require :pegdebug))
 (local {: view} (require :fennel))
 (import-macros {: check} :m)
+
+(fn module->str [mod] 
+  (if 
+    (= mod polyline) "polyline"
+    (= mod polygon) "polygon"
+    ":missing"))
 
 (fn luapts [points] 
   (.. "{ " (table.concat points ", ") " }"))
@@ -12,22 +20,24 @@
   (.. "[ " (table.concat points " ") " ]"))
 
 (fn fennel-scene [scene] 
-  (.. "[ "
+  (.. "[ \n"
       (table.concat 
-        (icollect [_ {: points :color [r g b]} (ipairs scene)]
+        (icollect [_ {: module : points :color [r g b]} (ipairs scene)]
                   (..
                     " { "
+                    ":module :" (module->str module) " "
                     ":color [" r " " g " " b "] " 
                     ":points " (fennelpts (v.flatten points))
-                    " } ")))
+                    " }\n")))
       " ]"))
 
 (fn lua-scene [scene]
   (.. "{ "
       (table.concat 
-        (icollect [_ {: points :color [r g b]} (ipairs scene)]
+        (icollect [_ {: module : points :color [r g b]} (ipairs scene)]
                   (..
                     " { "
+                    " module = \"" (module->str module) "\""
                     "color = {" r ", " g ", " b "}, "
                     "points = " (luapts (v.flatten points)) 
                     " } ")) ", ")
@@ -48,6 +58,13 @@
        :pair (/ (* digit space+ digit) topair)
        :table (lpeg.Ct (* space* "[" space* (^ (* pair space*) 1) "]"))
        })))
+
+(local fennel-module-patt
+    (lpeg.P
+      {1 :module
+       :module-lit (+ (* "polyline" (lpeg.Cc polyline)) (* "polygon" (lpeg.Cc polygon)))
+       :module (* ":" (lpeg.V :module-lit))
+       }))
 
 (local lua-pts-patt
   (let [
@@ -94,6 +111,7 @@
       shape (lpeg.V :shape)
       color (lpeg.V :color)
       points (lpeg.V :points)
+      module (lpeg.V :module)
       color-triple (lpeg.V :color-triple)
       scene (lpeg.V :scene)
       space+ (^ (lpeg.S " \t\r\n") 1)
@@ -106,14 +124,15 @@
        :color-triple (lpeg.Ct (* "[" space* number space+ number space+ number space*"]"))
        :color (lpeg.Cg (* ":color" space* color-triple) :color)
        :points (lpeg.Cg (* ":points" space* fennel-pts-patt) :points)
-       :shape (lpeg.Ct (* "{" (^ (* space* (+ points color) space* ) 2) "}"))
+       :module (lpeg.Cg (* ":module" space* fennel-module-patt) :module)
+       :shape (lpeg.Ct (* "{" (^ (* space* (+ points color module) space* ) 3) "}"))
        :scene (lpeg.Ct (* space* "["  (^ (* space* shape space*) 1) space* "]" space*))
        :debug scene 
        })
     ))
 
 (fn is-full-shape? [shape]
-  (and (. shape :color) (. shape :points)))
+  (and (. shape :module) (. shape :color) (. shape :points)))
 
 (fn load-fennel-scene [text]
   (let [scene (fennel-scene-patt:match text)]

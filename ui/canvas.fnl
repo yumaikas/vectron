@@ -5,6 +5,7 @@
 (local {:annex annex} (require :ui))
 (local {:view view} (require :fennel))
 (local gfx love.graphics)
+(local polyline (require :ui.shapes.polyline))
 (import-macros {: each-in} :m)
 
 (local exports {})
@@ -68,60 +69,35 @@
   (let 
     [points (server.points canvas.server)
      curr-shape (server.current-shape canvas.server) 
-     offset (server.slide-offset canvas.server)
      bg-shapes (f.filter.i (server.shapes canvas.server) #(not= $ curr-shape))
      {:mode mode} (server.mode canvas.server)
      color-mode (server.color-mode canvas.server)
+     slide-offset (server.slide-offset canvas.server)
      pt-count (length curr-shape.points)
      {:pos [x y] :dims [w h]} canvas 
      (mx my) (love.mouse.getPosition)
-     mpt [mx my] ]
-
+     [cmx cmy] (v.sub [mx my] canvas.pos)
+     mpt [cmx cmy] ]
+    (gfx.push)
+    (gfx.translate x y)
     (each-in bgs bg-shapes 
-      (let [pt-count (length bgs.points)]
-        (match color-mode
-          :alebedo (gfx.setColor bgs.color)
-          :highlight-selected (gfx.setColor [0.3 0.3 0.3]))
-        (if 
-          (> pt-count 1)
-          (gfx.line (v.flatten bgs.points))
-          (= pt-count 1)
-          (gfx.circle 
-            :line 
-            (. bgs.points 1 1) 
-            (. bgs.points 1 2) 
-            4))))
+      (bgs.module.draw-bg bgs color-mode))
 
-    (if 
-      (> pt-count 1)
-      (do
-        ; Lay out the line
-        (gfx.setColor curr-shape.color)
-        (gfx.line (v.flatten points))
-        (match mode
-          :insert 
-          (let [[[x1 y1] [x2 y2]] (hl-line points [mx my])]
-            (gfx.setColor [0.2 0.2 1])
-            (gfx.line x1 y1 mx my x2 y2))
-          _ 
-          (let [hpt (highlighted-point points [mx my])]
-            ; Draw the hover point, w/e it is
-            (when hpt
-              (gfx.setColor [0.2 0.2 1])
-              (gfx.circle :line (. hpt 1) (. hpt 2) 5)))))
-      (= pt-count 1)
-      (let [[x y] (. points 1)]
-        (gfx.setColor [1 1 1])
-        (gfx.circle :line x y 4)))
+    (curr-shape.module.draw-selected curr-shape mode slide-offset)
 
     (gfx.setColor [1 1 1])
-    (gfx.rectangle :line x y w h)))
+    (gfx.rectangle :line 0 0 w h)
+    (gfx.pop)
+    ))
 
 (fn update [canvas dt]
+  (tset canvas.rect 1 (. canvas.pos 1))
+  (tset canvas.rect 2 (. canvas.pos 2))
   (local {:debug outlbl :server srv } canvas)
   (local {:mode  mode} (server.mode srv))
   (set outlbl.text (view canvas.info))
   (let [(mx my) (love.mouse.getPosition)
+        [cmx cmy] (v.sub [mx my] canvas.pos)
         points (server.points srv)
         in-canvas (c.pt-in-rect? [mx my] canvas.rect) 
         just-pressed? love.mouse.isJustPressed
@@ -132,17 +108,17 @@
       ; Do things based on current mode
       (match mode 
         :add
-        (server.add-point srv [mx my])
+        (server.add-point srv [cmx cmy])
         :insert
         (when (> (length points) 1)
-          (let [[_ after] (hl-line points [mx my])]
-            (server.insert-point srv after [mx my])))
+          (let [[_ after] (hl-line points [cmx cmy])]
+            (server.insert-point srv after [cmx cmy])))
         :delete
-        (let [hlpt (highlighted-point points [mx my])]
+        (let [hlpt (highlighted-point points [cmx cmy])]
           (when hlpt
             (server.remove-point srv hlpt)))
         :move
-        (let [hlpt (highlighted-point points [mx my])]
+        (let [hlpt (highlighted-point points [cmx cmy])]
           (when hlpt
               (set canvas.drag-handle (server.begin-drag srv hlpt))))
         :slide 
@@ -158,7 +134,7 @@
           (server.end-slide srv [mx my]))
         :move
         (when canvas.drag-handle
-          (server.end-drag srv canvas.drag-handle [mx my])
+          (server.end-drag srv canvas.drag-handle [cmx cmy])
           (set canvas.drag-handle nil))))
     (when mouse-moved?
       (match mode
@@ -167,7 +143,7 @@
           (server.update-slide srv [mx my]))
         :move
         (when canvas.drag-handle
-          (server.update-drag srv canvas.drag-handle [mx my]))))))
+          (server.update-drag srv canvas.drag-handle [cmx cmy]))))))
 
 (set exports.make make)
 (set exports.draw draw)

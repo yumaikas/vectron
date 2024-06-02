@@ -11,7 +11,6 @@
 (local gfx love.graphics)
 
 
-
 (fn picker-line [op t x1 y x2 mx my has-drag?] 
   (match op
     :update (let
@@ -41,9 +40,8 @@
   (let [srv picker.server
         [x y] picker.pos
         [w h] picker.dims
-        curr-shape (server.current-shape srv)
-        [r g b] curr-shape.color
-        curr-color [r g b]
+        curr-color (picker.color-field.get)
+        [r g b] curr-color
         drag-idx picker.drag-idx
         justDown? love.mouse.isJustPressed
         justUp? love.mouse.isJustReleased
@@ -64,8 +62,8 @@
            (set picker.drag-idx idx))))
     ; Commit when a drag handle has been released
     (if (and love.mouse.isJustReleased picker.drag-idx)
-      (server.commit-shape-color srv curr-shape curr-color)
-      (server.set-shape-color srv curr-shape curr-color))
+       (picker.color-field.commit curr-color)
+       (picker.color-field.set curr-color))
     
     (when (not any-had-drag?)
       (set picker.drag-idx nil))))
@@ -77,29 +75,32 @@
     (gfx.rectangle :line x y w h)
     ; TODO: Draw 3 lines at 1/10th of w worth of padding on each side, with sliders that lerp between the two extents of each one
 
-    (let [srv picker.server
-          top-y (+ y 10)
+    (let [top-y (+ y 10)
           bot-y (+ y (- h 10))
           r-x (+ x 10) 
           l-x (+ x (- w 10))
           drag-idx picker.drag-idx
-          curr-shape (server.current-shape srv)
-          [r g b] curr-shape.color
-          [sr sg sb] (f.map.i curr-shape.color #(string.format "%.1f" $))
+          curr-color (picker.color-field.get)
+          [r g b] curr-color
+          [sr sg sb] (f.map.i curr-color #(string.format "%.1f" $))
           (mx my) (love.mouse.getPosition) ]
       (gfx.print  [ [r 0.2 0.2] (.. "R:" sr " ") [0.2 g 0.2] (.. "G:" sg " ") [0.2 0.2 b] (.. "B:" sb " ") ]   
                  r-x (+ top-y (assets.font:getHeight)))
+      (gfx.setColor (picker.color-field.get))
+      (gfx.print picker.name r-x top-y)
     (each-in idx [1 2 3]
-      (picker-line :draw (. curr-shape.color idx) r-x (+ y (* h (/ (+ 1 idx) 5))) l-x mx my (= idx drag-idx))))))
+      (picker-line :draw (. curr-color idx) r-x (+ y (* h (/ (+ 1 idx) 5))) l-x mx my (= idx drag-idx))))))
 
-(fn make [srv pos dims]  
+(fn make [name color-field pos dims] 
   (ui.annex 
     {
+     : name
      :type :color-picker
+     : color-field
      :drag-state {}
      :color [0 0.5 0]
      :drag-idx nil
-     :server srv
+     : color-field
      :code {: update : draw}
      : pos
      : dims }))

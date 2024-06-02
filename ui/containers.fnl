@@ -7,7 +7,7 @@
 (local gfx love.graphics)
 
 (fn layout [self] 
-  (f.pp "LAYOUT")
+  ;(f.pp "LAYOUT")
   (var x-extent 0)
   (var y-extent 0)
   (var coord [(. self.pos 1) (. self.pos 2)])

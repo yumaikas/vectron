@@ -6,6 +6,8 @@
 (local assets (require :assets))
 (local f (require :f))
 (local server (require :ui.server))
+(local polyline (require :ui.shapes.polyline))
+(require :ui.drag-handle)
 
 (fn draw [me]
   (me.rows.code.draw me.rows))
@@ -105,10 +107,11 @@
     (ui-stack
       :horizontal [0 0]
       (btxt :shape-lbl " SHAPE:")
-       (xbbtn :paste "N:" " New " #(server.new-shape srv))
+       (xbbtn :paste "N:" " New " #(server.new-shape srv polyline)) ; TODO: generalize this
        (xbbtn :paste "[:" " Import" #(server.load-code srv))
        (xbbtn :copy "]:" " Export " #(server.copy-code srv))
        (xbbtn :slide "T:" " Slide" #(server.set-mode srv :slide))
+       (xbbtn :switch "Y:" " Switch Type" #(server.toggle-shape-mode srv))
        ))
 
   (fn switch-export [] 
@@ -135,6 +138,7 @@
       (xbbtn :redo "R:" " Redo  " #(server.redo srv)) 
       (xbbtn :code-switch "F:" (start-export-text :fennel) switch-export)
       (xbbtn :quit "Q:" " Quit" #(love.event.quit 0))))
+
 
   (fn layout [me] 
     (me.rows.code.layout me.rows))

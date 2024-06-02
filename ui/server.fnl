@@ -1,5 +1,7 @@
 (local f (require :f))
 (local shape<> (require :ui.server.serialize))
+(local polyline (require :ui.shapes.polyline))
+(local polygon (require :ui.shapes.polygon))
 (local v (require :v))
 (local lpeg (require :lulpeg))
 (local {: view} (require :fennel))
@@ -7,7 +9,7 @@
 (import-macros {: protocol : export-protocol} :ui.proto)
 
 (local server-start-state
-  (let [starting-shape {:points [] :color [0 1 0]} ]
+  (let [starting-shape (polygon.empty [0 1 0]) ]
   {
    :mode :add
    :copy-mode :fennel
@@ -126,6 +128,7 @@
 
 (fn s.update-slide [server to] (set server.slide.current to))
 
+
 (fn s.end-slide [server at]
   (let [current-shape (s.current-shape server)
         pt-adjust (v.sub server.slide.current
@@ -133,6 +136,11 @@
     (set current-shape.points (f.map.i current-shape.points #(v.add $ pt-adjust)))
     (set server.slide.start [0 0])
     (set server.slide.current [0 0])))
+
+(fn s.toggle-shape-mode [server] 
+  (let [current-shape (s.current-shape server)]
+    (set current-shape.module
+      (if (= current-shape.module polyline) polygon polyline))))
 
 (fn s.points [server] 
   (let [points (. (s.current-shape server) :points)]
@@ -144,9 +152,9 @@
 
 (fn s.shapes [server] server.shapes)
 
-(fn s.new-shape [server] 
+(fn s.new-shape [server of] 
   (let [[x y] server.proto-point
-        new-shape { :points [[x y]] :color [0 1 0] } ]
+        new-shape (of.new x y [0 1 0])]
     (table.insert server.shapes new-shape)
     new-shape))
 
@@ -167,8 +175,24 @@
       (set server.current-shape pick-idx)
       (error "Tried to pick shape not in the server!"))))
 
+(fn s.shapelist-move-up [server] 
+  (let [picked (. server.shapes server.current-shape )
+        swap-idx (- server.current-shape 1)
+        swap-with (. server.shapes swap-idx)]
+    (when (>= swap-idx 0)
+        (tset server.shapes swap-idx picked)
+        (tset server.shapes server.current-shape swap-with))))
+
+(fn s.shapelist-move-down [server] 
+  (let [picked (. server.shapes server.current-shape )
+        swap-idx (+ server.current-shape 1)
+        swap-with (. server.shapes swap-idx)]
+    (when (<= swap-idx (length server.shapes))
+        (tset server.shapes swap-idx picked)
+        (tset server.shapes server.current-shape swap-with))))
+
 (fn s.clear-scene [server] 
-  (let [starting-shape {:points [] :color [0 1 0]} ]
+  (let [starting-shape (polygon.empty [0 1 0]) ]
    (set server.mode :add)
    (set server.copy-mode :fennel)
    (set server.current-shape 1)
@@ -204,14 +228,8 @@
         (s.set-status server "Did not find any points on the clipboard")))))
 
 
-(fn copy-shape [shape] 
-  (let [[r g b] shape.color
-        points shape.points ]
-  { :color [r g b]
-   :points (icollect [_ [x y] (ipairs points)] [x y])}))
-
 (fn copy-each-shape [shapes] 
-   (icollect [_ shape (ipairs shapes)] (copy-shape shape)))
+   (icollect [_ shape (ipairs shapes)] (shape.module.copy shape)))
 
 (fn version-of [server]
   {
@@ -258,7 +276,7 @@
         (set version-idx (+ version-idx 1))
         (apply-version server (. history version-idx))))
 
-    (protocol :vectorn-server
+    (protocol :vectron-server
       (cast :add-point pt) (do (commit) (s.add-point server pt))
       (cast :remove-point pt) (do (commit) (s.remove-point server pt))
       (cast :insert-point after pt) (do (commit) (s.insert-point server after pt))
@@ -270,7 +288,7 @@
       (call :slide-offset) (coroutine.yield (s.slide-offset server))
 
       (call :shapes) (coroutine.yield (s.shapes server))
-      (cast :new-shape) (do (commit) (s.pick-shape server (s.new-shape server)))
+      (cast :new-shape of) (do (commit) (s.pick-shape server (s.new-shape server of)))
       (call :current-shape) (coroutine.yield (s.current-shape server))
       (cast :pick-shape shape) (do (commit) (s.pick-shape server shape))
       (cast :move-shape shape after) (do (commit) (s.move-shape server shape after))
@@ -290,6 +308,8 @@
 
       (cast :set-color-mode mode) (s.set-color-mode server mode)
       (cast :toggle-color-mode) (s.toggle-color-mode server)
+
+      (cast :toggle-shape-mode) (s.toggle-shape-mode server)
 
       (cast :set-copy-mode mode) (s.set-copy-mode server mode)
       (cast :copy-code) (do (s.copy-code server))
@@ -343,7 +363,7 @@
               (error msg))
       _ srv)))
 
-(let [proto (export-protocol :vectorn-server)]
+(let [proto (export-protocol :vectron-server)]
   (set proto.make make)
   (set proto.start 
        (fn [coro inputs] (coroutine.resume coro :start inputs)))
